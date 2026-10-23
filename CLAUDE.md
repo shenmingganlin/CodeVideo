@@ -7,7 +7,10 @@
 这条排在本文件所有流程前面。之前三个视频（楞次定律、排序算法、诗笺）都没调用 motioner，做出来是"幻灯片 + 字幕条"：本文件自带一整套流程，却一直没提技能，技能就被跳过了。
 
 - 新做视频，或改现有视频的画面、动效、转场、声音：第一个动作是用 Skill 工具调用 `anthropic-skills:motioner`，排在提问、写方案、读代码之前。用户没提也要调。只改错字、换配音这类不碰画面的小改动不用调
-- 写 Remotion 代码时，用到字幕、音频、渲染、Studio 之类的具体 API，按需调用 `remotion-best-practices`；写 Manim 场景前调用 `manimce-best-practices`
+- 写 Remotion 代码时，用到字幕、音频、渲染、Studio、转场、动态模糊、漏光、effects、Lottie、地图、3D、GIF 之类的具体 API，按需调用 `remotion-best-practices`（它的描述只有一句"Router for all Remotion skills"，不会自己冒出来，要主动调）；写 Manim 场景前调用 `manimce-best-practices`
+- 顺序：新视频先调 motioner → 照"开工前先问清楚"提问，画面手法这一项先读 `techniques.md` 再问 → 写方案 → 动手写某种手法的代码前，调它在选型表里对应的技能或子文档
+- 技能的示例和本文件冲突时以本文件为准：Composition 不写进 `Root.tsx`，建作品目录的 `index.tsx`；Lottie 用 `<LottieClip>`，不直接用 `<Lottie>`；地图用 `<MapLibre>`；规格、风格、配色照本文件
+- 名字相近但不用于本项目的技能：`algorithmic-art`（出独立的 p5 HTML）、`canvas-design`（出 PNG/PDF 海报）、`slack-gif-creator`（Slack 规格的 GIF，和表情规格冲突）、`hana-design-studio`（HTML 课件）、`archify-diagrams`（HTML 图表），以及 `visual-design`、`ui-ux-pro-max`、`impeccable-design`、`frontend-design`、`theme-factory` 这类界面设计和配色主题技能。它们的产物进不了 Remotion，自带的配色字体还会盖掉用户这次说的风格。视频、表情、封面一律在 Remotion 里做，构思可以借鉴，产物照本文件的流程出。用户点名要用其中某个时照用户说的
 - 表情包不调 motioner，它是为成片写的
 - 用户装的 superpowers 插件每次开场都要求"先 brainstorming 再动手"。本项目做视频和表情不走它的 brainstorming、writing-plans、executing-plans：问需求照"开工前先问清楚"，方案只写作品目录的 `brief.md`，不在 `docs/superpowers/` 下写 spec 或 plan，也不为它们单独提交。改脚本、查 bug 时它的 systematic-debugging、verification-before-completion 照常用
 - 和本文件的分工：
@@ -39,7 +42,7 @@
 - 每个作品目录（视频或表情套系）都有一份 `brief.md`，见"作品方案"
 - `src/private/<作品>/`：用了商标、他人形象、网络梗图等有版权问题的作品，连私有仓库也不进（不进 git），`Root.tsx` 自动收进 private 分组，用法见 `src/private/README.md`。素材放 `public/private/<作品>/`（同样不进 git），换电脑要自己拷。其他作品照常放 `src/videos/`、`src/stickers/`，它们只进私有仓库，不会公开（见"仓库"）
 - `src/templates/<名字>/`：用户存下来的模板，每个有 `template.md` 和参数化组件；`ideas.md`：灵感本。见"模板和灵感"
-- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例
+- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"）
 - `public/`：字体、图片、配音、BGM/SFX，代码里用 `staticFile()` 引用。`npm run voice`、`npm run manim` 的产物放在和作品目录对应的位置（`src/videos/foo/` → `public/videos/foo/voice/`、`public/videos/foo/manim/`），跟着提交进私有仓库
 - `public/library/`：用户平时收集的素材库，分 `sfx/`（音效）、`bgm/`（背景音乐）、`svg/`（图标、角色、装饰）、`images/`。清单在 `public/library/index.md`，每个素材一行：描述、来源、许可。直接用 `staticFile("library/...")` 引用，不复制到作品目录。用户放了新素材但没写描述时，帮着补上：图形打开看，音频用 ffprobe 测时长、音量
 - `scripts/`：转码、校验、配音等脚本
@@ -69,8 +72,9 @@
 用户提出新视频或新表情的需求时，先把需求问完整，再动手。改现有作品、修小问题不用问。
 
 - 要确认的项目（用户已经说清楚的不再问，只问缺的）：
-  - 视频：主题和要点、时长、分辨率和帧率（横屏/竖屏/方形）、风格和配色、要不要配音和用哪个声音、要不要字幕、BGM 和音效（推荐代码合成、踩着画面的拍子，素材库有合适的列成备选）、要不要片头片尾、画面用代码画还是生图（见"生图"）、发 B 站的话要不要封面
-  - 表情：梗或台词、角色（用户给的图、代码画，还是生图）、动作、帧率和帧数、透明还是带底色、单个还是一套
+  - 视频：主题和要点、时长、分辨率和帧率（横屏/竖屏/方形）、风格和配色、画面手法（见下）、要不要配音和用哪个声音、要不要字幕、BGM 和音效（推荐代码合成、踩着画面的拍子，素材库有合适的列成备选）、要不要片头片尾、画面用代码画还是生图（见"生图"）、发 B 站的话要不要封面
+  - 画面手法：`techniques.md` 不会自动读进来，问之前先读它，再按选型表问，多选。选项写效果（"手绘草图感""地图飞行""3D 物体转台"），说明里写用什么技术、调哪个技能、成本和坑，第一个推荐项按内容挑。用户也可以直接点名工具。选了还没接入的技术（表里标"未接入"）要说明这次会顺带搭起来、大概多花多少工夫
+  - 表情：梗或台词、角色（用户给的图、代码画，还是生图）、动作、帧率和帧数、透明还是带底色、单个还是一套。代码画的话，按 `techniques.md` 挑平涂类的手法（SVG、Rough.js、Lottie、Zdog）
 - 怎么问：
   - 用提问工具（Claude Desktop 里是选项卡片，一次最多 4 个问题，问不完就分两轮），没有提问工具时用文字列出来
   - 每个问题给 2–4 个具体选项，第一个是推荐项，标"（推荐）"并用一句话说明为什么推荐（比如"讲解类 B 站视频常见 3–5 分钟"）。用户随时可以不选选项，自己补充
@@ -86,6 +90,7 @@
 - 视频：概念四行（种子、章节动词、变成链、首尾呼应）、节拍（BPM，章节落在第几拍）、内容分段
 - 表情：套系里每个表情的梗
 - 风格：配色色值、字体、画风；用了生图就写上统一的风格提示词，同一作品的每张图都带上它
+- 画面手法和工具：用了哪些技术（Lottie、Rough.js、D3、地图、Manim……）、各管哪几段画面、调了哪些技能；用了现成素材（Lottie 动画、地图图源）写上来源和许可
 - 声音（语音、语速、BGM、音效）、字幕、用到的素材库文件
 - 用户后来提的修改，改完同步更新对应条目
 
@@ -161,6 +166,33 @@
   - 坑：`mixColor` 的返回值是 `rgb(...)`，再喂回去也能用（已支持），但别把 `rgba()` 的四段当三段
   - 参考实现：`src/checks/StyleDemo.tsx`（一个方块炸成 1000 个，再变回一个，12 秒）
 
+## 画面手法
+
+- 选型表在 `techniques.md`：每种技术擅长什么画面、怎么接进 Remotion、对应技能、成本和坑、接入了没有。开工提问的"画面手法"照它问；新接入一种技术、或者踩到新坑，回头更新这张表
+- Remotion 始终是总装线（时间线、配音、混音、成片、审查），其他技术只是画面层，两种接法：
+  - 现画：在 Composition 里每帧画出来（SVG、Canvas、Lottie、Rough.js、D3、地图，以后的 p5.js、着色器、Three.js）
+  - 预渲染：在外面渲染成透明 WebM 或 PNG 序列再嵌回来（Manim，以后的 Blender、逐笔累积的笔刷、物理模拟）
+- 硬规则：画面只能由帧号算出来。Remotion 用多个标签页并行、乱序渲染，靠自己时钟跑的东西（requestAnimationFrame、CSS 动画和过渡、库自带的 play()/flyTo、Math.random）每个标签页跑得不一样。新接一个库先查它有没有"跳到第 N 帧/第 t 秒"的接口，没有就预渲染
+- 已接入的（用法示例都在 `src/checks/`）：
+  - Lottie：`src/shared/lottie.tsx`。`loadLottie()` 在 `calculateMetadata` 里读 `public/` 下的 JSON，`<LottieClip>` 播放，`lottieFrames()` 换算时长。别直接用 `@remotion/lottie` 的 `<Lottie>`：它把视频的帧号直接当 Lottie 的帧号，60fps 的动画放进 30fps 的视频会慢一半。带 `wiggle()`、`random()` 表达式的动画每个标签页抖得不一样，要在 AE 里先转成关键帧。示例 `LottieCheck`（同一个手写弹球的 30fps、60fps 两份，并排应该同步）。现成动画的来源和许可证写进 `brief.md`
+  - Rough.js：`src/shared/rough.tsx`。一律用 `roughGenerator(seed)` 生成图形：Rough.js 的 seed 缺省为 0，会改用 Math.random；不传 options 时几个图形还共用一个随机数状态，前面多画一个图形后面全变样。`<RoughPaths progress>` 画进 `<svg>`，描边和排线一笔笔画出来；`useBoilSeed(seed, 3)` 做手绘的抖线。示例 `RoughCheck`
+  - D3：只当计算库，d3-scale、d3-shape、d3-geo、d3-hierarchy 算出坐标再自己画 SVG；d3-selection、d3-transition 直接改 DOM、靠时钟动，不用。力导向图用 `src/shared/d3.ts` 的 `precomputeForce()` 预先 tick 出每帧位置。示例 `D3Check`
+  - 地图：`src/shared/map.tsx` 的 `<MapLibre>`，`setup` 加图层、设地球投影，`update(map, frame)` 每帧 `jumpTo` 相机、改数据，不用 flyTo/easeTo。航线、距离用 `@turf/turf`。示例 `MapCheck`（地球视角画航线，推进到曼哈顿看 3D 建筑）。要点：
+    - 渲染时要联网（样式、瓦片、字形、unpkg 上的 worker）。1080p 120 帧本机约 1 分 40 秒；本机缺省 GL 就能画，报 WebGL 错时加 `--gl=angle`，出问题把并发调小
+    - 矢量样式的图层按缩放级别整层出现（建筑 14 级、POI 15 级），推镜头穿过这些级别时亮度会跳一下，要平滑就在图层的 opacity 上按 zoom 插值
+    - 每帧都动相机时，卫星图、地形纹理在无界面渲染里可能闪。只做 2D 平移缩放就用 remotion-best-practices 技能里 maps 的 fixed map plate；真 3D 地形飞行用 Cesium，要 MapTiler 或 Google 的 key，还没接
+    - 图源署名必须留在画面上（`attribution` 必填）
+    - 图源：缺省用 OpenFreeMap 的 Liberty 样式（不要 key、不限量、允许商用、带 3D 建筑；没有 SLA，可能停服），署名"OpenFreeMap © OpenMapTiles Data from OpenStreetMap"。OSM 的署名规范：地图是画面主体时角落署名，简介或片尾再写一遍并附 openstreetmap.org/copyright。MapTiler、Stadia 的免费档不许商用，换图源先查条款。地形可以接 Mapterhorn 或 AWS Terrain Tiles（terrarium 编码，免 key），还没接、没实测
+    - 发 B 站的中国合规（2026-10-23 整理的资料，不是法律意见）：《地图管理条例》要求公开的地图送审、标审图号，景区图、街区图、地铁线路图这类简单地图除外；"谁公开谁送审"，视频也算。OSM 系图源（OpenFreeMap、MapTiler、Stadia、CARTO 都是）按实际控制画国界，台湾、钓鱼岛等和我国标准地图不一致，也没有审图号，所以：
+      - 画面里有国界、中国全图或有争议地区时，不用 OSM 系图源。用天地图（自然资源部的 WMTS 栅格瓦片，能当 MapLibre 的 raster 源；在 lbs.tianditu.gov.cn 注册开发者申请 key，写进 `.env`），不改边界、不删注记，画面上标来源和审图号（2026-10 是 GS（2026）4921号，用的时候去官网核对）；只要一张静态底图就从标准地图服务（bzdt.ch.mnr.gov.cn）下载，标它的审图号；或者避开这个机位。天地图还没接、没实测，没有 3D 建筑
+      - 只拍城市街区、不带国界的画面可以用 OSM 系图源（算不算街区图例外是推断）。国内 OSM 数据薄，建筑多半没有高度
+      - 在有审图号的地图上叠路线、调色、倾斜算不算"直接使用"，没查到官方说法。拿不准就问省级自然资源主管部门，或者送审（免费，约 20 个工作日）
+      - 从高德、腾讯、百度取的坐标是 GCJ-02 / BD-09，放到 OSM 或天地图上要先转回 WGS-84，不然偏几百米
+    - 开工提问选了地图、内容又涉及中国时，把上面的取舍列成选项问用户
+- 还没接入的，用到再搭（见"工作方式"：作品要用到还没有的能力时一起搭）：Canvas 2D、p5.js、着色器、Three.js（`@remotion/three`，规则在 remotion-best-practices 技能的 3D 部分）。搭的时候照上面的样子：接入组件放 `src/shared/`，自检放 `src/checks/`，写进本节和 `techniques.md`
+- Blender 用户定了不装（2026-10-23）：3D 先用 Three.js，作品确实需要写实材质、物理模拟、Grease Pencil 时，先问用户再装
+- 社区的 Three.js、着色器、生成艺术技能大多用 rAF 或墙钟时间，有几个触发范围过宽，只当参考读，不装（见 `techniques.md`"现成的技能"）
+
 ## 生图
 
 - `scripts/image.mjs` 调用「猫肥生图」（`gpt-image-2.5-sunburst`，OpenAI 兼容接口）。地址、模型、Key 在 `.env`（不进 git，格式见 `.env.example`），不要读出或打印 Key。提示词和参考图会发到这个第三方服务
@@ -184,7 +216,7 @@
 - `npm run dev`：打开 Studio
 - `npm run lint`：ESLint + TypeScript 检查
 - `npx remotion still <id> out/<名字>.png --frame=<帧号>`：渲染单帧
-- `npm run video -- <id> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>]`：渲染视频成片（yuv420p、bt709）并校验分辨率、帧率、帧数、像素格式、音轨时长、响度（目标 -14±3 LUFS）和 true peak（≤ -1 dBTP）；`--mix` 时画面静音渲染、FFmpeg 合入混音；`npm run video -- <文件.mp4>` 只校验
+- `npm run video -- <id> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]`：渲染视频成片（yuv420p、bt709）并校验分辨率、帧率、帧数、像素格式、音轨时长、响度（目标 -14±3 LUFS）和 true peak（≤ -1 dBTP）；`--mix` 时画面静音渲染、FFmpeg 合入混音；`--gl`、`--concurrency` 给 WebGL 画面用（见"画面手法"）；`npm run video -- <文件.mp4>` 只校验
 - `npm run review -- src/videos/<作品> <成片.mp4> [--only=transitions|sync] [--mix=<混音.wav>]`：motioner 的转场审查和音效对帧，结果在 `out/review/<作品>/`。技能目录找不到时设 `MOTIONER_DIR`
 - `npm run mix -- src/videos/<作品>`：timeline.json → 总谱 → 合成 → 按帧混音 → 配音和母带，出 `public/videos/<作品>/audio/fullmix.wav`，约 1–2 分钟。只改了 `voiceMix` 时单独跑 `.venv/Scripts/python.exe scripts/voice_mix.py src/videos/<作品> [--bed-gain=<dB>] [--voice-gain=<dB>]`，增益缺省读 timeline.json 的 `voiceMix`
 - `npm run stills -- <id> <帧号…> [--scale=0.5] [--out=out/stills/<id>]`：一次打包渲染多张单帧，比逐张 `npx remotion still` 快

@@ -1,7 +1,11 @@
 import { Folder } from "remotion";
+import { D3Check } from "./checks/D3Check";
 import { FormulaCheck } from "./checks/formula/FormulaCheck";
 import { GradientCheck } from "./checks/GradientCheck";
 import { LandscapeCheck } from "./checks/LandscapeCheck";
+import { LottieCheck } from "./checks/LottieCheck";
+import { MapCheck } from "./checks/MapCheck";
+import { RoughCheck } from "./checks/RoughCheck";
 import { StickerArtCheck } from "./checks/StickerArtCheck";
 import { StickerCheck } from "./checks/StickerCheck";
 import { SortingStyleDemoComposition } from "./checks/StyleDemo";
@@ -12,11 +16,30 @@ import { VoiceCheck } from "./checks/voice/VoiceCheck";
 // require.context 的参数必须是字面量，所以分开写三遍。
 // 字体用了顶层 await，这些模块是异步的，require 拿到的是 Promise
 const collect = (context: ReturnType<typeof require.context>) =>
-  Promise.all(context.keys().map(async (key) => ({ key, Works: (await context(key)).default })));
+  Promise.all(
+    context
+      .keys()
+      .map(async (key) => ({ key, Works: (await context(key)).default })),
+  );
 const groups = [
-  { name: "videos", works: await collect(require.context("./videos", true, /^\.\/[^/]+\/index\.tsx$/)) },
-  { name: "stickers", works: await collect(require.context("./stickers", true, /^\.\/[^/]+\/index\.tsx$/)) },
-  { name: "private", works: await collect(require.context("./private", true, /^\.\/[^/]+\/index\.tsx$/)) },
+  {
+    name: "videos",
+    works: await collect(
+      require.context("./videos", true, /^\.\/[^/]+\/index\.tsx$/),
+    ),
+  },
+  {
+    name: "stickers",
+    works: await collect(
+      require.context("./stickers", true, /^\.\/[^/]+\/index\.tsx$/),
+    ),
+  },
+  {
+    name: "private",
+    works: await collect(
+      require.context("./private", true, /^\.\/[^/]+\/index\.tsx$/),
+    ),
+  },
 ];
 
 export const RemotionRoot: React.FC = () => {
@@ -30,6 +53,10 @@ export const RemotionRoot: React.FC = () => {
         <VoiceCheck />
         <FormulaCheck />
         <SortingStyleDemoComposition />
+        <LottieCheck />
+        <RoughCheck />
+        <D3Check />
+        <MapCheck />
       </Folder>
       {groups.map(
         ({ name, works }) =>

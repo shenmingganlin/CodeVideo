@@ -27,6 +27,7 @@ const PUBLISH = [
   "CLAUDE.md",
   "LICENSE",
   "README.md",
+  "techniques.md",
   "eslint.config.mjs",
   "package.json",
   "package-lock.json",

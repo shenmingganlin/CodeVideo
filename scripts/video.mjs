@@ -1,6 +1,6 @@
 // 视频成片：渲染 MP4 并校验
 //
-// 用法：npm run video -- <Composition ID> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>]
+// 用法：npm run video -- <Composition ID> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]
 //       npm run video -- <文件.mp4>        只校验现成的视频
 //
 // --mix：画面静音渲染，再用 FFmpeg 把混好的 WAV 合进去（AAC 256k，按画面时长截齐）。
@@ -33,7 +33,7 @@ const fail = (message) => {
   console.error(`\n出错：${message}`);
   process.exit(1);
 };
-if (!target) fail("用法：npm run video -- <Composition ID 或 文件.mp4> [--out=…] [--crf=18] [--mix=<混音.wav>]");
+if (!target) fail("用法：npm run video -- <Composition ID 或 文件.mp4> [--out=…] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]");
 
 // 运行命令，返回 stdout 或 stderr（ebur128 的结果在 stderr 里）
 const run = (cmd, cmdArgs, stream = "stdout") =>
@@ -58,6 +58,12 @@ if (/\.(mp4|mov|mkv|webm)$/i.test(target)) {
   file = path.resolve(ROOT, option("out") ?? path.join("out", `${target}.mp4`));
   const crf = Number(option("crf") ?? 18);
   if (!Number.isInteger(crf) || crf < 0 || crf > 51) fail("--crf 要是 0–51 的整数，越小越清晰，缺省 18");
+  // 地图、着色器、Three.js 这类 WebGL 画面画不出来时加 --gl=angle；一个标签页一个 WebGL 实例，吃内存时把并发调小
+  const gl = option("gl");
+  const GL_RENDERERS = ["angle", "egl", "swiftshader", "swangle", "vulkan", "angle-egl"];
+  if (gl && !GL_RENDERERS.includes(gl)) fail(`--gl 只能是 ${GL_RENDERERS.join("、")}`);
+  const concurrency = option("concurrency") === undefined ? null : Number(option("concurrency"));
+  if (concurrency !== null && (!Number.isInteger(concurrency) || concurrency < 1)) fail("--concurrency 要是正整数");
   const mix = option("mix") && path.resolve(ROOT, option("mix"));
   if (mix && !fs.existsSync(mix)) fail(`找不到混音 ${option("mix")}`);
   // 带 --mix 时先渲染到旁边的静音文件，合好音轨再删掉
@@ -82,6 +88,8 @@ if (/\.(mp4|mov|mkv|webm)$/i.test(target)) {
     pixelFormat: "yuv420p",
     colorSpace: "bt709",
     muted: Boolean(mix),
+    ...(gl ? { chromiumOptions: { gl } } : {}),
+    ...(concurrency ? { concurrency } : {}),
     outputLocation: picture,
     onProgress: ({ progress }) => {
       const percent = Math.floor(progress * 100);

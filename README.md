@@ -16,6 +16,7 @@
 | 配音 | 免费的 Edge 语音，台词写在 `voice.json`，`npm run voice` 生成配音和逐词时间 |
 | 字幕 | 按配音的逐词时间自动断句，可逐词高亮 |
 | 公式 | KaTeX 排版静态公式，Manim 做公式变形、几何动画 |
+| 画面手法 | 选型表在 `techniques.md`；已接入 Lottie、Rough.js 手绘草图、D3 图表和力导向图、MapLibre 地图飞行，示例在 `src/checks/` |
 | 生图 | 接 OpenAI 兼容的生图接口，文生图、图生图，角色、插画、封面底图交给它 |
 | 表情 | 生成图一键裁切描边（`npm run sticker-art`），导出 GIF 并校验体积、循环、接缝（`npm run sticker`） |
 | 成片 | `npm run video` 渲染 MP4，校验分辨率、帧率、帧数、响度 |
@@ -60,3 +61,4 @@
 - 字体是思源黑体（SIL OFL）
 - Remotion 对个人和小团队免费，公司使用要买许可，见 [Remotion 的许可说明](https://www.remotion.dev/license)
 - Edge 语音是微软的免费接口，不是正式服务，所以生成的配音都提交进仓库，不依赖重新生成
+- 地图示例的底图来自 OpenFreeMap，数据来自 OpenStreetMap（ODbL），画面上要保留署名
