@@ -46,29 +46,36 @@ const Scene: React.FC = () => {
   // 翻到侧面（90 度）时抬得最高
   const lift = Math.abs(Math.sin((angle * Math.PI) / 180));
   const scale = lerp(1, 1.08, lift);
-  const float = Math.sin((frame / FRAMES) * Math.PI * 2) * 10;
-  const tilt = Math.sin((frame / FRAMES) * Math.PI * 4) * 3;
+  // 一个循环浮两次：正弦本身两头慢中间快，像漂在水上；幅度放大到看得清
+  const phase = (frame / FRAMES) * Math.PI * 4;
+  const float = -Math.sin(phase) * 16;
+  const float01 = 0.5 + 0.5 * Math.sin(phase); // 0 最低、1 最高
+  // 倾斜比浮动晚四分之一拍，像被水推着晃
+  const tilt = Math.sin(phase - Math.PI / 2) * 3;
   const shadowW = Math.abs(Math.cos((angle * Math.PI) / 180)) * 0.85 + 0.15;
   return (
     <Stage>
+      {/* 浮动写进卡片自己的 3D 变换里：写在 top 或外层 translate 上，Chrome 会把整层对齐到整像素，浮起来一顿一顿的 */}
       <div
         style={{
           position: "absolute",
-          left: W / 2 - (CW * shadowW) / 2,
+          left: W / 2 - CW / 2,
           top: H / 2 + CH / 2 + 50,
-          width: CW * shadowW,
+          width: CW,
           height: 34,
           borderRadius: "50%",
           background: "#000",
-          opacity: lerp(0.5, 0.25, lift),
-          filter: `blur(${lerp(10, 22, lift)}px)`,
+          // 卡片往上浮时影子变小变淡
+          opacity: lerp(0.5, 0.25, lift) * (1 - float01 * 0.25),
+          filter: `blur(${lerp(10, 22, lift) + float01 * 4}px)`,
+          transform: `scaleX(${shadowW * (1 - float01 * 0.08)})`,
         }}
       />
       <div
         style={{
           position: "absolute",
           left: W / 2 - CW / 2,
-          top: H / 2 - CH / 2 + float - lift * 30,
+          top: H / 2 - CH / 2,
           width: CW,
           height: CH,
           perspective: 1600,
@@ -79,7 +86,7 @@ const Scene: React.FC = () => {
             position: "absolute",
             inset: 0,
             transformStyle: "preserve-3d",
-            transform: `scale(${scale}) rotateX(${tilt}deg) rotateY(${angle}deg)`,
+            transform: `translateY(${float - lift * 30}px) scale(${scale}) rotateX(${tilt}deg) rotateY(${angle}deg)`,
           }}
         >
           <Face bg={C.bg2} fg={C.fg} label="正面" title="问题" />
@@ -95,7 +102,7 @@ const effect: GalleryEffect = {
   name: "卡片翻面",
   group: "形状",
   desc: "卡片绕竖轴翻到背面露出答案，停一会再翻回来，翻到侧面时抬起、影子收窄",
-  tech: "CSS perspective 1600 + rotateY 按帧算（ease.inOut，30 帧翻半圈），两面 backface-visibility: hidden",
+  tech: "CSS perspective 1600 + rotateY 按帧算（ease.inOut，30 帧翻半圈），两面 backface-visibility: hidden；上下浮动走 translate3d（top 带小数会被取整到整像素，浮起来一顿一顿），倾斜比浮动晚四分之一拍",
   frames: FRAMES,
   component: Scene,
 };
