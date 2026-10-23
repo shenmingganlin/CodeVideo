@@ -1,6 +1,6 @@
 // 分镜草图：把作品用 ShotSketches（src/shared/sketch.tsx）注册的每个镜头渲成静帧 PNG，给分镜评审页挂
 //
-// 用法：npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5]
+// 用法：npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5] [--gl=angle]
 //   作品的 board/board.json 里写 "sketch": "<prefix>"，和 ShotSketches 的 prefix 一样
 //   出在 out/board/<作品>/<镜头>.png；一个镜头出多帧时是 <镜头>-f<帧号>.png
 //   不写镜头 id 就出全部。只打包一次，一个镜头几秒
@@ -19,7 +19,7 @@ const fail = (message) => {
 
 const args = process.argv.slice(2);
 const option = (name) => args.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
-for (const arg of args.filter((a) => a.startsWith("--"))) if (!/^--scale=/.test(arg)) fail(`不认识的选项 ${arg}`);
+for (const arg of args.filter((a) => a.startsWith("--"))) if (!/^--(scale|gl)=/.test(arg)) fail(`不认识的选项 ${arg}`);
 const [workArg, ...only] = args.filter((arg) => !arg.startsWith("--"));
 if (!workArg) fail("用法：npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5]");
 const work = path.resolve(ROOT, workArg);
@@ -35,6 +35,7 @@ const prefix = board.sketch;
 if (!prefix) fail(`board.json 里要写 "sketch": "<prefix>"，和作品 index.tsx 里 <ShotSketches prefix=…> 的一样`);
 const scale = Number(option("scale") ?? 0.5);
 if (!(scale > 0 && scale <= 1)) fail("--scale 要在 0–1 之间，缺省 0.5");
+const gl = option("gl");
 const outDir = path.join(ROOT, "out", "board", path.basename(work));
 const rel = (file) => path.relative(ROOT, file).replaceAll("\\", "/");
 
@@ -52,7 +53,7 @@ for (const composition of sketches) {
   for (const frame of stills) {
     const output = path.join(outDir, stills.length === 1 ? `${shot}.png` : `${shot}-f${frame}.png`);
     const started = Date.now();
-    await renderStill({ composition, serveUrl, output, frame, scale });
+    await renderStill({ composition, serveUrl, output, frame, scale, ...(gl ? { chromiumOptions: { gl } } : {}) });
     console.log(`${rel(output)}（${((Date.now() - started) / 1000).toFixed(1)}s）`);
     made.set(shot, [...(made.get(shot) ?? []), rel(output)]);
   }

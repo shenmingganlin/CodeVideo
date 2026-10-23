@@ -45,7 +45,7 @@
 - `src/private/<作品>/`：用了商标、他人形象、网络梗图等有版权问题的作品，连私有仓库也不进（不进 git），`Root.tsx` 自动收进 private 分组，用法见 `src/private/README.md`。素材放 `public/private/<作品>/`（同样不进 git），换电脑要自己拷。其他作品照常放 `src/videos/`、`src/stickers/`，它们只进私有仓库，不会公开（见"仓库"）
 - `decks/<名字>/`：演讲稿（PPTX 或 HTML），见"演讲稿"。和作品一样只进私有仓库
 - `src/templates/<名字>/`：用户存下来的模板，每个有 `template.md` 和参数化组件；`ideas.md`：灵感本。见"模板和灵感"
-- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"），`checks/sketch/` 是分镜草图（`ShotSketches` + `npm run sketch`）的示例
+- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"），`checks/sketch/` 是分镜草图（`ShotSketches` + `npm run sketch`）的示例，`CanvasCheck`、`ShaderCheck`、`ThreeCheck` 是 Canvas 2D、着色器、Three.js 图层的示例
 - `src/gallery/`：动效样片库，`effects/` 下一个效果一个文件，见"动效样片库"
 - `public/`：字体、图片、配音、BGM/SFX，代码里用 `staticFile()` 引用。`npm run voice`、`npm run manim` 的产物放在和作品目录对应的位置（`src/videos/foo/` → `public/videos/foo/voice/`、`public/videos/foo/manim/`），跟着提交进私有仓库
 - `public/library/`：用户平时收集的素材库，分 `sfx/`（音效）、`bgm/`（背景音乐）、`svg/`（图标、角色、装饰）、`images/`。清单在 `public/library/index.md`，每个素材一行：描述、来源、许可。直接用 `staticFile("library/...")` 引用，不复制到作品目录。用户放了新素材但没写描述时，帮着补上：图形打开看，音频用 ffprobe 测时长、音量
@@ -239,7 +239,7 @@
   - Rough.js：`src/shared/rough.tsx`。一律用 `roughGenerator(seed)` 生成图形：Rough.js 的 seed 缺省为 0，会改用 Math.random；不传 options 时几个图形还共用一个随机数状态，前面多画一个图形后面全变样。`<RoughPaths progress>` 画进 `<svg>`，描边和排线一笔笔画出来；`useBoilSeed(seed, 3)` 做手绘的抖线。示例 `RoughCheck`
   - D3：只当计算库，d3-scale、d3-shape、d3-geo、d3-hierarchy 算出坐标再自己画 SVG；d3-selection、d3-transition 直接改 DOM、靠时钟动，不用。力导向图用 `src/shared/d3.ts` 的 `precomputeForce()` 预先 tick 出每帧位置。示例 `D3Check`
   - 地图：`src/shared/map.tsx` 的 `<MapLibre>`，`setup` 加图层、设地球投影，`update(map, frame)` 每帧 `jumpTo` 相机、改数据，不用 flyTo/easeTo。航线、距离用 `@turf/turf`。示例 `MapCheck`（地球视角画航线，推进到曼哈顿看 3D 建筑）。要点：
-    - 渲染时要联网（样式、瓦片、字形、unpkg 上的 worker）。1080p 120 帧本机约 1 分 40 秒；本机缺省 GL 就能画，报 WebGL 错时加 `--gl=angle`，出问题把并发调小
+    - 渲染时要联网（样式、瓦片、字形、unpkg 上的 worker）。1080p 120 帧本机约 1 分 40 秒；缺省 GL 是软件渲染也能画（见下面"GL 后端"），加 `--gl=angle` 用显卡，出问题把并发调小
     - 矢量样式的图层按缩放级别整层出现（建筑 14 级、POI 15 级），推镜头穿过这些级别时亮度会跳一下，要平滑就在图层的 opacity 上按 zoom 插值
     - 每帧都动相机时，卫星图、地形纹理在无界面渲染里可能闪。只做 2D 平移缩放就用 remotion-best-practices 技能里 maps 的 fixed map plate；真 3D 地形飞行用 Cesium，要 MapTiler 或 Google 的 key，还没接
     - 图源署名必须留在画面上（`attribution` 必填）
@@ -250,7 +250,12 @@
       - 在有审图号的地图上叠路线、调色、倾斜算不算"直接使用"，没查到官方说法。拿不准就问省级自然资源主管部门，或者送审（免费，约 20 个工作日）
       - 从高德、腾讯、百度取的坐标是 GCJ-02 / BD-09，放到 OSM 或天地图上要先转回 WGS-84，不然偏几百米
     - 开工提问选了地图、内容又涉及中国时，把上面的取舍列成选项问用户
-- 还没接入的，用到再搭（见"工作方式"：作品要用到还没有的能力时一起搭）：Canvas 2D、p5.js、着色器、Three.js（`@remotion/three`，规则在 remotion-best-practices 技能的 3D 部分）。搭的时候照上面的样子：接入组件放 `src/shared/`，自检放 `src/checks/`，写进本节和 `techniques.md`
+  - Canvas 2D：`src/shared/canvas.tsx`。`<CanvasLayer draw={(ctx, frame, size) => …} />` 每帧清空重画；要一步步积分的粒子、弹簧用 `simulate({ init, step, every })`，`.at(frame)` 从最近的检查点往后算，乱序取帧结果一样。拖尾画成"几帧前 → 现在"的线段，不靠不清屏。示例 `CanvasCheck`、样片 #87
+  - 着色器：`src/shared/shader.tsx`。`<ShaderLayer frag={SHADER_NOISE + FRAG} uniforms={…} />`，Shadertoy 写法（只写 `mainImage`）自动补 `iTime`、`iFrame`、`iResolution`；半透明输出要预乘。噪声用 `SHADER_NOISE`（整数哈希），别用 `fract(sin(…))`：显卡和软件渲染能差出整片噪点。示例 `ShaderCheck`、样片 #88
+  - Three.js：`src/shared/three.tsx`。`<ThreeLayer shadows>` 包住场景，`<FrameCamera position lookAt fov />` 每帧设相机（`<Canvas camera>` 只读一次），`orbit()` 算绕转机位。动画只由 `useCurrentFrame()` 算，不用 `useFrame()`、`Clock`；命令式改的（InstancedMesh 矩阵、材质参数）必须写在 `useLayoutEffect` 里，写在 `useEffect` 里会画错（实测每个渲染标签页的第一帧方柱全没摆上）。示例 `ThreeCheck`、样片 #89
+  - 细节、成本和坑见 `techniques.md`
+- GL 后端：Chrome 无界面渲染缺省用的是**软件渲染**（SwiftShader，CPU），`--gl=angle` 才用显卡（RTX 5060，经 D3D11）。着色器用显卡快一倍，Three.js 快两倍多（150 帧带阴影 11 秒对 27 秒），几万根线的 Canvas 反而是软件渲染快。有着色器或 Three.js 的片子一律加 `--gl=angle`。一部片子定一个，静帧（`npm run stills -- … --gl=angle`）、草图（`npm run sketch -- … --gl=angle`）、草稿、成片都用同一个，不然同一帧画出来不一样
+- 还没接入的，用到再搭（见"工作方式"：作品要用到还没有的能力时一起搭）：p5.js、Three.js 里的中文立体字（TextGeometry 要 typeface 字体，中文字库太大）。搭的时候照上面的样子：接入组件放 `src/shared/`，自检放 `src/checks/`，写进本节和 `techniques.md`
 - Blender 用户定了不装（2026-10-23）：3D 先用 Three.js，作品确实需要写实材质、物理模拟、Grease Pencil 时，先问用户再装
 - 社区的 Three.js、着色器、生成艺术技能大多用 rAF 或墙钟时间，有几个触发范围过宽，只当参考读，不装（见 `techniques.md`"现成的技能"）
 
@@ -297,10 +302,10 @@
 - `npm run video -- <id> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]`：渲染视频成片（yuv420p、bt709）并校验分辨率、帧率、帧数、像素格式、音轨时长、响度（目标 -14±3 LUFS）和 true peak（≤ -1 dBTP）；`--mix` 时画面静音渲染、FFmpeg 合入混音；`--gl`、`--concurrency` 给 WebGL 画面用（见"画面手法"）；`npm run video -- <文件.mp4>` 只校验
 - `npm run review -- src/videos/<作品> <成片.mp4> [--only=transitions|sync] [--mix=<混音.wav>]`：motioner 的转场审查和音效对帧，结果在 `out/review/<作品>/`。技能目录找不到时设 `MOTIONER_DIR`
 - `npm run mix -- src/videos/<作品>`：timeline.json → 总谱 → 合成 → 按帧混音 → 配音和母带，出 `public/videos/<作品>/audio/fullmix.wav`，约 1–2 分钟。只改了 `voiceMix` 时单独跑 `.venv/Scripts/python.exe scripts/voice_mix.py src/videos/<作品> [--bed-gain=<dB>] [--voice-gain=<dB>]`，增益缺省读 timeline.json 的 `voiceMix`
-- `npm run stills -- <id> <帧号…> [--scale=0.5] [--out=out/stills/<id>]`：一次打包渲染多张单帧，比逐张 `npx remotion still` 快
+- `npm run stills -- <id> <帧号…> [--scale=0.5] [--out=out/stills/<id>] [--gl=angle]`：一次打包渲染多张单帧，比逐张 `npx remotion still` 快。`--gl` 和成片用同一个（以前写死了 angle，2026-10-24 改成缺省和 `npm run video` 一样）
 - `npm run sync-public [-- --push] [--ref=main] [--message=<说明>]`：把工作台同步到公开仓库，缺省只预演，见"仓库"
 - `npm run board -- <作品目录> [--list] [--resolve=<编号,…> --reply=<回复>] [--no-open]`：分镜评审页，见"开工前先问清楚"
-- `npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5]`：把 `<ShotSketches>` 注册的每个镜头渲成静帧，出在 `out/board/<作品>/`，对照 board.json 列出没挂上的图
+- `npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5] [--gl=angle]`：把 `<ShotSketches>` 注册的每个镜头渲成静帧，出在 `out/board/<作品>/`，对照 board.json 列出没挂上的图
 - `npm run gallery [-- <名字…>] [--force] [--no-open] [--list]`：渲染动效样片库并打开网页，见"动效样片库"；`--list` 只打印编号、名字、分组、文件名和描述
 - `npm run doctor`：环境预检（Node、FFmpeg、gifski、uv 和 Python 依赖、TeX、字体、motioner 技能目录、.env 是否填好）
 - `npm run voice -- src/videos/<作品>`：生成配音和逐词时间，加 `--force` 全部重新生成；`npm run voice -- --voices` 列出中文语音

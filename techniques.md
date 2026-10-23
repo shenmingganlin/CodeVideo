@@ -20,10 +20,10 @@
 | 数据图表、关系图、树图、桑基图 | D3 | 现画 | 已接入 |
 | 地球推进到城市、航线、地点、3D 建筑 | MapLibre 地图 | 现画 | 已接入 |
 | 公式变形、几何证明 | Manim（静态公式用 KaTeX） | 预渲染 | 已接入 |
-| 傅里叶本轮、上万粒子、流场、像素风 | Canvas 2D | 现画 | 未接入（不用装包） |
+| 傅里叶本轮、上万粒子、流场、像素风 | Canvas 2D | 现画 | 已接入 |
 | 生成艺术、水彩晕染、手绘笔刷 | p5.js + p5.brush | 现画；逐笔累积的要预渲染 | 未接入 |
-| 流体渐变背景、光效、溶解和故障转场 | WebGL 着色器 | 现画；自反馈的要预渲染 | 未接入 |
-| 3D 物体、立体字、地球、镜头运动 | Three.js | 现画 | 未接入 |
+| 流体渐变背景、光效、溶解和故障转场 | WebGL 着色器 | 现画；自反馈的要预渲染 | 已接入 |
+| 3D 物体、立体字、地球、镜头运动 | Three.js | 现画 | 已接入 |
 | 写实材质、布料流体、Grease Pencil 手绘 | Blender | 预渲染 | 不装，要用先问用户 |
 | 实拍感镜头、真人、自然景观 | AI 视频生成 | 素材 | 未接入 |
 | 刚体碰撞、堆叠 | matter.js | 预先算好每帧 | 未接入 |
@@ -97,18 +97,61 @@
 - 版本：本仓库用社区版 ManimCE，[ManimCommunity/manim](https://github.com/ManimCommunity/manim)（MIT）。3Blue1Brown 自己用的 ManimGL 接口不兼容，网上的代码要先分清是哪一版
 - 成本：要装 TeX，带公式的场景渲染慢一些，但都在 CPU 上跑
 
-## 未接入
-
 ### Canvas 2D
 
-- 擅长：傅里叶本轮画图、上万粒子和流场、像素风和抖动风
-- 接法：
-  - canvas 固定宽高，在 `useLayoutEffect([frame])` 里同步画完
-  - 轨迹不能靠"不清屏"留下来。DFT 系数用 `useMemo` 算一次，每帧把 0 到 t 的整段轨迹按公式重画
-  - 粒子写成 `f(i, frame)` 的闭式解，或者用带种子的随机数预先模拟成数组，按帧取
-- 成本：低，CPU 就够
+- 擅长：上万粒子和流场、傅里叶本轮画图、像素风和抖动风。SVG 到几千个元素就卡了
+- 接法：`src/shared/canvas.tsx`，示例 `CanvasCheck`（12000 个粒子顺流场走）和样片 #87
+  - `<CanvasLayer draw={(ctx, frame, {width, height}) => …} />`，draw 在 `useLayoutEffect` 里同步画完；ctx 每帧清空、按原尺寸缩放好，`--scale=0.5` 时画布像素也跟着减半
+  - 要一步步积分的（粒子跟着流场走、弹簧链）用 `simulate({ init, step, every: 30 })`，`.at(frame)` 取第几帧：每 30 帧存一个检查点，从最近的检查点往后算，乱序取哪一帧都和从头算的逐位相同（实测 3 种顺序 417 次）。step 必须是纯函数，随机数用 `rand(种子)`
+  - 轨迹不能靠"不清屏"留下来：拖尾画成"几帧前 → 现在"的线段，前几帧的位置同样用 `.at()` 取
+  - 同色同透明度的线一次 `beginPath` 全加进去再一次 `stroke`，比每根一次快几十倍；要分透明度就按档分批
+- 坑：同一帧在软件渲染和显卡渲染下抗锯齿差一点（最大 5/255），静帧、草稿、成片用同一个 `--gl`
+- 成本：1080p 一万个粒子，缺省（软件渲染）比 `--gl=angle` 快：CanvasCheck 180 帧 13 秒对 21 秒，几万根线时 GPU 光栅化和回读反而慢
 - 表情：关掉抗锯齿或者加深色描边，不然 256 色下边缘有杂点
 - 案例：[mattdesl/canvas-sketch](https://github.com/mattdesl/canvas-sketch)（MIT），[trozler/myFourierEpicycles](https://github.com/trozler/myFourierEpicycles)（MIT，傅里叶本轮）
+
+### WebGL 着色器
+
+- 擅长：流体和渐变背景、域扭曲噪声、光效、溶解遮罩、SDF 图形
+- 接法：`src/shared/shader.tsx`，示例 `ShaderCheck`（流动渐变 + 叠在字上的溶解遮罩）和样片 #88
+  - `<ShaderLayer frag={SHADER_NOISE + FRAG} uniforms={{ uMix: 0.4, uColor: hexToVec3("#…") }} />`，全屏一个片元着色器，每帧画一次
+  - frag 用 Shadertoy 写法（只写 `mainImage`）就自动补上 `iTime`（秒）、`iFrame`、`iResolution`（画布像素）；Shadertoy 的作品基本能直接贴
+  - uniforms 里数字是 float，2–4 个数的数组是 vec2–vec4；画面只看 iTime、iFrame 和 uniform
+  - 半透明输出要预乘：rgb 乘过 a，叠在 React 画面上才不发白（溶解遮罩就是这么叠的）
+  - 带 Buffer 自反馈的效果（流体模拟、反应扩散、残影）要上一帧，只能预渲染
+  - 要首尾无缝循环：时间在圆上走，`vec2(cos, sin)(2π·iFrame/总帧数)` 当噪声偏移
+  - Remotion 自带的 `createEffect` 和 `@remotion/effects` 是给已有画面做后期的（发光、色差、像素化），和这个"从零画"的图层是两回事；`@remotion/effects` 没装，许可证没核实
+- 坑：
+  - 噪声别用常见的 `fract(sin(dot(p, …)) * 43758.5)`：sin 在不同 GPU 后端精度不一样，同一帧在显卡和软件渲染上差出整片噪点（实测最大差 245/255、两成像素）。用 `SHADER_NOISE` 的整数哈希（PCG），差降到最大 18、0.17% 的像素（只剩边缘抗锯齿）
+  - 即便如此，静帧、草稿、成片也用同一个 `--gl`
+  - 一个 ShaderLayer 一个 WebGL 上下文，Chrome 同时最多十几个
+  - 着色器编译错误会直接抛出来；Shadertoy 写法报的行号要减去 `PRELUDE_LINES`
+- 成本：渲染加 `--gl=angle` 用显卡（RTX 5060），比缺省的软件渲染快一倍：ShaderCheck 150 帧 1080p 两层，10 秒对 20 秒
+- 许可：Shadertoy 上没写许可证的作品默认是 CC BY-NC-SA 3.0，B 站有收益的视频不要直接搬
+- 表情：渐变在 256 色下色带明显，在着色器里直接量化到调色板
+- 案例：[regl-project/regl](https://github.com/regl-project/regl)（MIT）、[greggman/twgl.js](https://github.com/greggman/twgl.js)（MIT）
+
+### Three.js
+
+- 擅长：3D 物体和场景、镜头绕着东西转、几百上千个方块一起动（InstancedMesh）、灯光阴影雾
+- 接法：`src/shared/three.tsx`，示例 `ThreeCheck`（576 根方柱跟着波纹起伏 + 浮着的环结，带阴影，镜头绕转）和样片 #89。装的是 `@remotion/three` 4.0.537、`three` 0.186.1、`@react-three/fiber` 9.8.2（React 19 要 fiber 9）
+  - `<ThreeLayer shadows>` 包住场景，`<FrameCamera position lookAt fov />` 每帧设相机，`orbit(t, 半径, 高度)` 算绕转的机位
+  - 动画只由 `useCurrentFrame()` 算：写成 JSX 属性（`rotation={[0, frame * 0.02, 0]}`）最省事
+  - 命令式改的（InstancedMesh 的矩阵和颜色、材质参数、几何体顶点）写在 `useLayoutEffect` 里，改完设 `needsUpdate`
+  - `<Sequence>` 放在里面要写 `layout="none"`
+  - glTF 自带的动画用 `mixer.setTime(frame / fps)`；模型、HDR 贴图的加载走 `delayRender`（还没实测）
+- 坑：
+  - 不用 R3F 的 `useFrame()`、three 的 `Clock`、`AnimationMixer` 自己走的时间（remotion-best-practices 的 3D 规则）。drei 里靠它自己动的组件（Float、Sparkles、autoRotate）都要改成帧号的函数；drei 没装
+  - angle 有内存泄漏（Remotion 文档说的，没实测），长片吃内存时分段渲染或调小 `--concurrency`
+  - 命令式的改动写在 `useEffect` 里会画错：ThreeCanvas 在它自己的 useEffect 里画这一帧，排在你的前面。实测每个渲染标签页的第一帧方柱全没摆上（下半屏亮度 20 对 52），之后的帧和正确版也有一半多的像素对不上
+  - 相机别靠 `<Canvas camera={…}>`，它只在创建时读一次
+  - 同一后端下并发乱序渲染逐像素相同；显卡和软件渲染之间阴影和边缘差一点（最大 78/255，0.13% 的像素），一部片子用同一个 `--gl`
+  - 中文立体字：three 的 TextGeometry 要 typeface 字体文件，中文字库太大，还没做；先用 Canvas 画字当贴图，或者 SVG 路径挤出
+- 成本：渲染加 `--gl=angle` 用显卡，比缺省的软件渲染快两倍多：ThreeCheck 150 帧 1080p 带阴影，11 秒对 27 秒，草稿档 7.7 秒
+- 表情：平涂材质（`meshBasicMaterial`、`meshToonMaterial`）在 256 色下还行，带高光和阴影的渐变会出色带
+- 案例：[pmndrs/react-three-fiber](https://github.com/pmndrs/react-three-fiber)（MIT）、[mrdoob/three.js](https://github.com/mrdoob/three.js)（MIT）
+
+## 未接入
 
 ### p5.js
 
@@ -126,33 +169,6 @@
 - 表情：静态笔触可以；水彩渐变在 256 色下会出色带
 - 案例：[processing/p5.js](https://github.com/processing/p5.js)（LGPL-2.1，只约束库本身，不影响成片）
 - 技能：anthropics/skills 的 `algorithmic-art` 出的是独立 HTML，用的是全局模式的 p5 1.7，进不了 Remotion，只能借它的构思方法
-
-### WebGL 着色器
-
-- 擅长：流体和渐变背景、域扭曲噪声、SDF 光线步进的 3D、溶解和故障转场
-- 接法：
-  - 全屏三角形加 fragment shader，`iTime = frame / fps` 作为 uniform 传进去，每帧同步画一次
-  - Shadertoy 的作品包一层 `mainImage` 就能移植
-  - 带 Buffer 自反馈的效果（流体、反应扩散、残影）是累积状态，只能预渲染
-  - Remotion 4.0.537 自带 `createEffect({ backend: "webgl2" })`，可以做能叠加的自定义效果；`@remotion/effects` 有 glow、halftone、色差等现成后期，许可证没核实
-- 许可：Shadertoy 上没写许可证的作品默认是 CC BY-NC-SA 3.0，B 站有收益的视频不要直接搬
-- 成本：GPU 上很快，渲染时加 `--gl=angle`
-- 表情：渐变在 256 色下色带明显，在着色器里直接量化到调色板
-- 案例：[regl-project/regl](https://github.com/regl-project/regl)（MIT）、[greggman/twgl.js](https://github.com/greggman/twgl.js)（MIT）
-
-### Three.js
-
-- 擅长：低多边形产品转台、3D 标志和立体字、地球、星空、粒子云
-- 接法：用 `@remotion/three` 的 `<ThreeCanvas width height>`，规则在 remotion-best-practices 技能的 3D 部分
-  - 不能用 `useFrame`。drei 里靠它自己动的组件（Float、Sparkles、autoRotate 等）都要改成帧号的函数
-  - `<ThreeCanvas>` 里的 `<Sequence>` 要设 `layout="none"`
-  - glTF 动画用 `mixer.setTime(frame / fps)`
-  - 模型和 HDR 的加载走 `delayRender`
-- 成本：中到高，要 GPU
-  - Remotion 文档说缺省的 GL 画不出 Three.js，要加 `--gl=angle`，`npm run video` 已经支持这个参数。本机还没实测（地图在缺省 GL 下是能画的）
-  - angle 有内存泄漏，长片分段渲染
-- 表情：toon 材质的平涂小转台可以，PBR 渐变量化成 256 色后难看
-- 案例：[mrdoob/three.js](https://github.com/mrdoob/three.js)（MIT）、[pmndrs/react-three-fiber](https://github.com/pmndrs/react-three-fiber)（MIT）、[remotion-dev/template-three](https://github.com/remotion-dev/template-three)（MIT）
 
 ### 其他现画的库
 
