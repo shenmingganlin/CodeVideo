@@ -1,0 +1,28 @@
+node_modules
+dist
+.DS_Store
+.env
+
+# Ignore rendered output, but not media you import into src/ or public/.
+out
+
+# Python tooling (Manim, TTS scripts)
+.venv
+__pycache__
+
+# Third-party binaries such as the gifski CLI
+tools
+
+# Remotion bundle output (npm run build)
+build
+
+# 只自用的作品（见 src/private/README.md）
+src/private/*
+!src/private/README.md
+public/private/
+
+# 代码合成的配乐、音效和混音都能从 audio/score.json 重新生成，WAV 不进 git
+src/videos/*/audio/**/*.wav
+public/videos/*/audio/*.wav
+# motioner 的 transition_review.py 不带 --out 时的默认输出（npm run review 写到 out/review/）
+transition-review/

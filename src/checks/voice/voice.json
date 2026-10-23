@@ -1,0 +1,20 @@
+{
+  "voice": "zh-CN-YunxiNeural",
+  "lines": [
+    {
+      "id": "hello",
+      "text": "这是配音和字幕的自检，每个词的时间都来自 Edge 语音。"
+    },
+    {
+      "id": "mixed",
+      "text": "中英混排也没问题：Remotion 4.0，帧率 30fps，π 约等于 3.14。",
+      "pauseAfterMs": 600
+    },
+    {
+      "id": "quote",
+      "text": "他说：“字幕要跟着声音走……”",
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "rate": "+15%"
+    }
+  ]
+}

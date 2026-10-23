@@ -1,0 +1,53 @@
+{
+  "name": "codevideo",
+  "version": "1.0.0",
+  "description": "Remotion 工作区：视频与表情包",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "upgrade": "remotion upgrade",
+    "lint": "eslint src && tsc",
+    "sticker": "node scripts/sticker.mjs",
+    "voice": "uv run scripts/voice.py",
+    "manim": "node scripts/manim.mjs",
+    "image": "node scripts/image.mjs",
+    "sticker-art": "uv run scripts/sticker_art.py",
+    "image-box": "uv run scripts/image_box.py",
+    "contact": "node scripts/contact.mjs",
+    "bgm": "uv run scripts/bgm.py",
+    "paper": "uv run scripts/paper.py",
+    "video": "node scripts/video.mjs",
+    "review": "node scripts/review.mjs",
+    "mix": "node scripts/mix.mjs",
+    "stills": "node scripts/stills.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "sync-public": "node scripts/sync-public.mjs"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.537",
+    "@remotion/captions": "4.0.537",
+    "@remotion/cli": "4.0.537",
+    "@remotion/fonts": "4.0.537",
+    "@remotion/google-fonts": "^4.0.537",
+    "@remotion/media": "4.0.537",
+    "@remotion/renderer": "4.0.537",
+    "flubber": "0.4.2",
+    "katex": "0.19.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.537"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.537",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "10.12.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  }
+}

@@ -1,0 +1,470 @@
+{
+  "lines": [
+    {
+      "id": "hello",
+      "text": "这是配音和字幕的自检，每个词的时间都来自 Edge 语音。",
+      "voice": "zh-CN-YunxiNeural",
+      "rate": "+0%",
+      "pitch": "+0Hz",
+      "volume": "+0%",
+      "src": "checks/voice/voice/hello.mp3",
+      "durationMs": 5184,
+      "captions": [
+        {
+          "text": "这是",
+          "startMs": 170,
+          "endMs": 420,
+          "timestampMs": 170,
+          "confidence": null
+        },
+        {
+          "text": "配音",
+          "startMs": 432,
+          "endMs": 870,
+          "timestampMs": 432,
+          "confidence": null
+        },
+        {
+          "text": "和",
+          "startMs": 895,
+          "endMs": 1058,
+          "timestampMs": 895,
+          "confidence": null
+        },
+        {
+          "text": "字幕",
+          "startMs": 1070,
+          "endMs": 1332,
+          "timestampMs": 1070,
+          "confidence": null
+        },
+        {
+          "text": "的",
+          "startMs": 1332,
+          "endMs": 1408,
+          "timestampMs": 1332,
+          "confidence": null
+        },
+        {
+          "text": "自检，",
+          "startMs": 1420,
+          "endMs": 1870,
+          "timestampMs": 1420,
+          "confidence": null
+        },
+        {
+          "text": "每个",
+          "startMs": 2182,
+          "endMs": 2470,
+          "timestampMs": 2182,
+          "confidence": null
+        },
+        {
+          "text": "词",
+          "startMs": 2470,
+          "endMs": 2582,
+          "timestampMs": 2470,
+          "confidence": null
+        },
+        {
+          "text": "的",
+          "startMs": 2582,
+          "endMs": 2645,
+          "timestampMs": 2582,
+          "confidence": null
+        },
+        {
+          "text": "时间",
+          "startMs": 2658,
+          "endMs": 3132,
+          "timestampMs": 2658,
+          "confidence": null
+        },
+        {
+          "text": "都",
+          "startMs": 3232,
+          "endMs": 3408,
+          "timestampMs": 3232,
+          "confidence": null
+        },
+        {
+          "text": "来自",
+          "startMs": 3420,
+          "endMs": 3682,
+          "timestampMs": 3420,
+          "confidence": null
+        },
+        {
+          "text": " Edge",
+          "startMs": 3708,
+          "endMs": 3970,
+          "timestampMs": 3708,
+          "confidence": null
+        },
+        {
+          "text": " 语音。",
+          "startMs": 3982,
+          "endMs": 4358,
+          "timestampMs": 3982,
+          "confidence": null
+        }
+      ],
+      "words": [
+        [
+          "这是",
+          1000000,
+          2500000
+        ],
+        [
+          "配音",
+          3625000,
+          4375000
+        ],
+        [
+          "和",
+          8250000,
+          1625000
+        ],
+        [
+          "字幕",
+          10000000,
+          2625000
+        ],
+        [
+          "的",
+          12625000,
+          750000
+        ],
+        [
+          "自检",
+          13500000,
+          4500000
+        ],
+        [
+          "每个",
+          21125000,
+          2875000
+        ],
+        [
+          "词",
+          24000000,
+          1125000
+        ],
+        [
+          "的",
+          25125000,
+          625000
+        ],
+        [
+          "时间",
+          25875000,
+          4750000
+        ],
+        [
+          "都",
+          31625000,
+          1750000
+        ],
+        [
+          "来自",
+          33500000,
+          2625000
+        ],
+        [
+          "Edge",
+          36375000,
+          2625000
+        ],
+        [
+          "语音",
+          39125000,
+          3750000
+        ]
+      ],
+      "hash": "25db3f7b1693fb8037507ccb9c6787e6f90db868"
+    },
+    {
+      "id": "mixed",
+      "text": "中英混排也没问题：Remotion 4.0，帧率 30fps，π 约等于 3.14。",
+      "pauseAfterMs": 600,
+      "voice": "zh-CN-YunxiNeural",
+      "rate": "+0%",
+      "pitch": "+0Hz",
+      "volume": "+0%",
+      "src": "checks/voice/voice/mixed.mp3",
+      "durationMs": 7560,
+      "captions": [
+        {
+          "text": "中",
+          "startMs": 170,
+          "endMs": 382,
+          "timestampMs": 170,
+          "confidence": null
+        },
+        {
+          "text": "英",
+          "startMs": 382,
+          "endMs": 520,
+          "timestampMs": 382,
+          "confidence": null
+        },
+        {
+          "text": "混排",
+          "startMs": 532,
+          "endMs": 920,
+          "timestampMs": 532,
+          "confidence": null
+        },
+        {
+          "text": "也",
+          "startMs": 945,
+          "endMs": 1020,
+          "timestampMs": 945,
+          "confidence": null
+        },
+        {
+          "text": "没",
+          "startMs": 1032,
+          "endMs": 1145,
+          "timestampMs": 1032,
+          "confidence": null
+        },
+        {
+          "text": "问题：",
+          "startMs": 1145,
+          "endMs": 1532,
+          "timestampMs": 1145,
+          "confidence": null
+        },
+        {
+          "text": "Remotion",
+          "startMs": 1932,
+          "endMs": 2508,
+          "timestampMs": 1932,
+          "confidence": null
+        },
+        {
+          "text": " 4.0，",
+          "startMs": 2532,
+          "endMs": 3170,
+          "timestampMs": 2532,
+          "confidence": null
+        },
+        {
+          "text": "帧率",
+          "startMs": 3382,
+          "endMs": 3795,
+          "timestampMs": 3382,
+          "confidence": null
+        },
+        {
+          "text": " 30",
+          "startMs": 3795,
+          "endMs": 4182,
+          "timestampMs": 3795,
+          "confidence": null
+        },
+        {
+          "text": "fps，",
+          "startMs": 4195,
+          "endMs": 4882,
+          "timestampMs": 4195,
+          "confidence": null
+        },
+        {
+          "text": "π",
+          "startMs": 5082,
+          "endMs": 5458,
+          "timestampMs": 5082,
+          "confidence": null
+        },
+        {
+          "text": " 约",
+          "startMs": 5458,
+          "endMs": 5745,
+          "timestampMs": 5458,
+          "confidence": null
+        },
+        {
+          "text": "等于 3.14。",
+          "startMs": 5758,
+          "endMs": 6745,
+          "timestampMs": 5758,
+          "confidence": null
+        }
+      ],
+      "words": [
+        [
+          "中",
+          1000000,
+          2125000
+        ],
+        [
+          "英",
+          3125000,
+          1375000
+        ],
+        [
+          "混排",
+          4625000,
+          3875000
+        ],
+        [
+          "也",
+          8750000,
+          750000
+        ],
+        [
+          "没",
+          9625000,
+          1125000
+        ],
+        [
+          "问题",
+          10750000,
+          3875000
+        ],
+        [
+          "Remotion",
+          18625000,
+          5750000
+        ],
+        [
+          "4.0",
+          24625000,
+          6375000
+        ],
+        [
+          "帧率",
+          33125000,
+          4125000
+        ],
+        [
+          "30",
+          37250000,
+          3875000
+        ],
+        [
+          "fps",
+          41250000,
+          6875000
+        ],
+        [
+          "π",
+          50125000,
+          3750000
+        ],
+        [
+          "约",
+          53875000,
+          2875000
+        ],
+        [
+          "等于 3.14",
+          56875000,
+          9875000
+        ]
+      ],
+      "hash": "d7e3215b6a154a5a2b02f0721bfe885183b7b97e"
+    },
+    {
+      "id": "quote",
+      "text": "他说：“字幕要跟着声音走……”",
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "rate": "+15%",
+      "pitch": "+0Hz",
+      "volume": "+0%",
+      "src": "checks/voice/voice/quote.mp3",
+      "durationMs": 2544,
+      "captions": [
+        {
+          "text": "他",
+          "startMs": 163,
+          "endMs": 316,
+          "timestampMs": 163,
+          "confidence": null
+        },
+        {
+          "text": "说：",
+          "startMs": 316,
+          "endMs": 620,
+          "timestampMs": 316,
+          "confidence": null
+        },
+        {
+          "text": "“字幕",
+          "startMs": 859,
+          "endMs": 1153,
+          "timestampMs": 859,
+          "confidence": null
+        },
+        {
+          "text": "要",
+          "startMs": 1163,
+          "endMs": 1305,
+          "timestampMs": 1163,
+          "confidence": null
+        },
+        {
+          "text": "跟着",
+          "startMs": 1316,
+          "endMs": 1544,
+          "timestampMs": 1316,
+          "confidence": null
+        },
+        {
+          "text": "声音",
+          "startMs": 1555,
+          "endMs": 1870,
+          "timestampMs": 1555,
+          "confidence": null
+        },
+        {
+          "text": "走……”",
+          "startMs": 1870,
+          "endMs": 2109,
+          "timestampMs": 1870,
+          "confidence": null
+        }
+      ],
+      "words": [
+        [
+          "他",
+          934580,
+          1521660
+        ],
+        [
+          "说",
+          2456660,
+          3043330
+        ],
+        [
+          "字幕",
+          7891250,
+          2934580
+        ],
+        [
+          "要",
+          10934580,
+          1412910
+        ],
+        [
+          "跟着",
+          12456660,
+          2282500
+        ],
+        [
+          "声音",
+          14847910,
+          3152080
+        ],
+        [
+          "走",
+          18000000,
+          2391250
+        ]
+      ],
+      "hash": "b60232a6da9e56db9adc6c860754683d012c1e2e"
+    }
+  ]
+}

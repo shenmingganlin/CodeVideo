@@ -1,0 +1,19 @@
+[project]
+name = "codevideo-tools"
+version = "0.1.0"
+description = "CodeVideo 的 Python 工具：Edge 配音、Manim 公式动画"
+requires-python = "==3.12.*"
+dependencies = [
+  "edge-tts==7.3.1",
+  "manim==0.22.0",
+  # sticker_art.py 直接用到，版本和 Manim 依赖里锁定的一致
+  "numpy==2.5.4",
+  "pillow==13.0.0",
+  "rembg[cpu]>=2.0.86",
+  # motioner 技能的 synth_score.py、build_mix.py 直接用到，版本和 Manim 依赖里锁定的一致
+  "scipy==1.18.1",
+]
+
+[tool.uv]
+# 只用来装工具，不把这个目录当成 Python 包
+package = false

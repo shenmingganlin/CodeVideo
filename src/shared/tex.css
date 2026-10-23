@@ -1,0 +1,5 @@
+/* KaTeX 把公式里的汉字放进 .cjk_fallback，但没给它指定字体，浏览器会随便挑一个系统字体。
+   这里改用 Tex 组件的 cjkFont，默认思源黑体 */
+.katex .cjk_fallback {
+  font-family: var(--tex-cjk-font), sans-serif;
+}
