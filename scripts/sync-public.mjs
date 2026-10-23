@@ -42,6 +42,7 @@ const PUBLISH = [
   "src/shared/",
   "src/templates/",
   "src/checks/",
+  "src/gallery/",
   "src/videos/README.md",
   "src/stickers/README.md",
   "src/private/README.md",

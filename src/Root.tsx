@@ -10,6 +10,7 @@ import { StickerArtCheck } from "./checks/StickerArtCheck";
 import { StickerCheck } from "./checks/StickerCheck";
 import { SortingStyleDemoComposition } from "./checks/StyleDemo";
 import { VoiceCheck } from "./checks/voice/VoiceCheck";
+import { Gallery } from "./gallery";
 
 // 作品不写死在这里：src/videos/、src/stickers/、src/private/ 下每个子目录的 index.tsx
 // 默认导出一个注册 Composition 的组件，自动收进对应分组。公开仓库只有工作台，这几个目录是空的，照样能打开。
@@ -58,6 +59,7 @@ export const RemotionRoot: React.FC = () => {
         <D3Check />
         <MapCheck />
       </Folder>
+      <Gallery />
       {groups.map(
         ({ name, works }) =>
           works.length > 0 && (
