@@ -8,6 +8,7 @@ import { MapCheck } from "./checks/MapCheck";
 import { RoughCheck } from "./checks/RoughCheck";
 import { StickerArtCheck } from "./checks/StickerArtCheck";
 import { StickerCheck } from "./checks/StickerCheck";
+import { SketchCheck } from "./checks/sketch/SketchCheck";
 import { SortingStyleDemoComposition } from "./checks/StyleDemo";
 import { VoiceCheck } from "./checks/voice/VoiceCheck";
 import { Gallery } from "./gallery";
@@ -58,6 +59,7 @@ export const RemotionRoot: React.FC = () => {
         <RoughCheck />
         <D3Check />
         <MapCheck />
+        <SketchCheck />
       </Folder>
       <Gallery />
       {groups.map(

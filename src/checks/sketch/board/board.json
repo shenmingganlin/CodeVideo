@@ -1,0 +1,24 @@
+{
+  "title": "分镜草图自检",
+  "round": 1,
+  "sketch": "SketchCheck",
+  "summary": "npm run sketch 的用法示例：两个镜头各一个草图 Composition，s2 出两张静帧",
+  "spec": "1920×1080，30fps",
+  "shots": [
+    {
+      "id": "s1",
+      "title": "落",
+      "picture": "深蓝底，12×7 的浅色格子，一粒水滴悬在中间那一列上方",
+      "media": [{ "src": "out/board/sketch/s1.png", "caption": "静帧草图" }]
+    },
+    {
+      "id": "s2",
+      "title": "散",
+      "picture": "水滴落进格子，涟漪三圈推开",
+      "media": [
+        { "src": "out/board/sketch/s2-f0.png", "caption": "落水" },
+        { "src": "out/board/sketch/s2-f1.png", "caption": "涟漪推开" }
+      ]
+    }
+  ]
+}

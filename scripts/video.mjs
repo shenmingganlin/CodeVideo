@@ -1,7 +1,13 @@
 // 视频成片：渲染 MP4 并校验
 //
 // 用法：npm run video -- <Composition ID> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]
+//                      [--frames=<起>-<止>] [--draft]
 //       npm run video -- <文件.mp4>        只校验现成的视频
+//
+// --frames=300-450：只渲染这一段（含两端），混音也截同一段合进去，出 out/<id>-f300-450.mp4。样片就用它
+// --draft：草稿档，半分辨率、crf 28、x264 ultrafast，出 out/<id>-draft.mp4，比成片快几倍。改一版看一眼用它，
+//   不要每改一次就整片出成片（踩过：一部 60 秒的着色器片子每遍 24 分钟，改了十几遍）。可以和 --frames 一起用
+// 只渲一段或草稿档时不量响度（一段的响度和整片对不上），分辨率按缩放后的算
 //
 // --mix：画面静音渲染，再用 FFmpeg 把混好的 WAV 合进去（AAC 256k，按画面时长截齐）。
 // motioner 实测让渲染器自己编码音频会晚 42.7ms（AAC 的 priming 没补偿），音轨还会比画面长，
@@ -33,7 +39,14 @@ const fail = (message) => {
   console.error(`\n出错：${message}`);
   process.exit(1);
 };
-if (!target) fail("用法：npm run video -- <Composition ID 或 文件.mp4> [--out=…] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]");
+if (!target) fail("用法：npm run video -- <Composition ID 或 文件.mp4> [--out=…] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1] [--frames=<起>-<止>] [--draft]");
+const KNOWN = ["out", "crf", "mix", "gl", "concurrency", "frames"];
+for (const arg of args.filter((a) => a.startsWith("--"))) {
+  if (arg === "--draft") continue;
+  if (!KNOWN.some((k) => arg.startsWith(`--${k}=`))) fail(`不认识的选项 ${arg}（要用等号连着写，比如 --frames=300-450）`);
+}
+const draft = args.includes("--draft");
+const DRAFT_SCALE = 0.5;
 
 // 运行命令，返回 stdout 或 stderr（ebur128 的结果在 stderr 里）
 const run = (cmd, cmdArgs, stream = "stdout") =>
@@ -50,13 +63,24 @@ const run = (cmd, cmdArgs, stream = "stdout") =>
 
 let file;
 let expected = null;
+// 只渲一段或草稿档时不是成片，响度不量
+let partial = false;
 if (/\.(mp4|mov|mkv|webm)$/i.test(target)) {
   file = path.resolve(ROOT, target);
   if (!fs.existsSync(file)) fail(`找不到 ${target}`);
   if (option("mix")) fail("--mix 只在渲染时用；要校验的成片已经带着音轨");
+  if (draft || option("frames")) fail("--draft、--frames 只在渲染时用");
 } else {
-  file = path.resolve(ROOT, option("out") ?? path.join("out", `${target}.mp4`));
-  const crf = Number(option("crf") ?? 18);
+  let range = null;
+  if (option("frames") !== undefined) {
+    const m = option("frames").match(/^(\d+)-(\d+)$/);
+    if (!m || Number(m[1]) > Number(m[2])) fail("--frames 写成 <起>-<止>，比如 --frames=300-450（含两端）");
+    range = [Number(m[1]), Number(m[2])];
+  }
+  partial = draft || Boolean(range);
+  const suffix = `${range ? `-f${range[0]}-${range[1]}` : ""}${draft ? "-draft" : ""}`;
+  file = path.resolve(ROOT, option("out") ?? path.join("out", `${target}${suffix}.mp4`));
+  const crf = Number(option("crf") ?? (draft ? 28 : 18));
   if (!Number.isInteger(crf) || crf < 0 || crf > 51) fail("--crf 要是 0–51 的整数，越小越清晰，缺省 18");
   // 地图、着色器、Three.js 这类 WebGL 画面画不出来时加 --gl=angle；一个标签页一个 WebGL 实例，吃内存时把并发调小
   const gl = option("gl");
@@ -76,9 +100,15 @@ if (/\.(mp4|mov|mkv|webm)$/i.test(target)) {
   const composition = await selectComposition({ serveUrl, id: target }).catch((err) =>
     fail(`取不到 Composition ${target}：${err.message}`),
   );
-  expected = composition;
-  const seconds = (composition.durationInFrames / composition.fps).toFixed(2);
-  console.log(`渲染 ${target}（${composition.width}×${composition.height}，${composition.fps}fps，${composition.durationInFrames} 帧 = ${seconds}s${mix ? "，静音" : ""}）…`);
+  if (range && range[1] >= composition.durationInFrames) fail(`--frames 超出范围：${target} 只有 0–${composition.durationInFrames - 1} 帧`);
+  const scale = draft ? DRAFT_SCALE : 1;
+  const frameCount = range ? range[1] - range[0] + 1 : composition.durationInFrames;
+  // 缩放后的宽高按 Remotion 的规则取整到偶数（yuv420p 要求偶数）
+  const even = (n) => Math.round((n * scale) / 2) * 2;
+  expected = { width: even(composition.width), height: even(composition.height), fps: composition.fps, durationInFrames: frameCount };
+  const seconds = (frameCount / composition.fps).toFixed(2);
+  const what = [range ? `第 ${range[0]}–${range[1]} 帧` : null, draft ? "草稿档" : null, mix ? "静音" : null].filter(Boolean).join("，");
+  console.log(`渲染 ${target}（${expected.width}×${expected.height}，${composition.fps}fps，${frameCount} 帧 = ${seconds}s${what ? `，${what}` : ""}）…`);
   let lastPercent = -10;
   await renderMedia({
     composition,
@@ -88,6 +118,9 @@ if (/\.(mp4|mov|mkv|webm)$/i.test(target)) {
     pixelFormat: "yuv420p",
     colorSpace: "bt709",
     muted: Boolean(mix),
+    scale,
+    frameRange: range,
+    ...(draft ? { x264Preset: "ultrafast" } : {}),
     ...(gl ? { chromiumOptions: { gl } } : {}),
     ...(concurrency ? { concurrency } : {}),
     outputLocation: picture,
@@ -101,10 +134,11 @@ if (/\.(mp4|mov|mkv|webm)$/i.test(target)) {
   });
   if (mix) {
     console.log(`合入混音 ${path.relative(ROOT, mix)}…`);
-    // 时长写成 帧数/帧率 的精确值，音轨不会比画面长
-    const exact = String(composition.durationInFrames / composition.fps);
+    // 时长写成 帧数/帧率 的精确值，音轨不会比画面长；只渲一段时混音从起帧对应的时间截起（-ss 放在 -i 前，WAV 按采样点精确定位）
+    const exact = String(frameCount / composition.fps);
+    const offset = range ? ["-ss", String(range[0] / composition.fps)] : [];
     await run("ffmpeg", [
-      "-y", "-v", "error", "-i", picture, "-i", mix,
+      "-y", "-v", "error", "-i", picture, ...offset, "-i", mix,
       "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k",
       "-t", exact, "-movflags", "+faststart", file,
     ]);
@@ -157,7 +191,10 @@ if (!audio) {
   const frame = 1 / fps;
   const audioNote = gap > 0.5 ? `，比画面短 ${gap.toFixed(2)}s` : gap < -frame ? `，比画面长 ${(-gap * 1000).toFixed(0)}ms，卡帧的片子用 --mix 合轨` : "";
   report(audioNote ? "warn" : "ok", "音轨时长", `${Number(audio.duration).toFixed(3)}s${audioNote}`);
-
+}
+if (audio && partial) {
+  report("ok", "响度", "只渲了一段或草稿档，不量；出成片时再看");
+} else if (audio) {
   const loudness = await run("ffmpeg", ["-nostats", "-hide_banner", "-i", file, "-map", "0:a:0", "-af", "ebur128=peak=true", "-f", "null", "-"], "stderr");
   const summary = loudness.slice(loudness.lastIndexOf("Summary:"));
   const integrated = Number(summary.match(/I:\s+(-?[\d.]+|-inf) LUFS/)?.[1]);

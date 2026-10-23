@@ -1,6 +1,7 @@
 // 动效样片库：把 src/gallery/effects/ 下的效果渲染成循环小片，拼成网页 out/gallery/index.html 给用户挑
 //
-// 用法：npm run gallery [-- <名字…>] [--force] [--no-open]
+// 用法：npm run gallery [-- <名字…>] [--force] [--no-open] [--list]
+//   --list 只打印"编号、名字、分组、文件名、描述"，不渲染不开网页
 //   名字是 effects/ 下的文件名（不带 .tsx），不写就处理全部
 //   源码没变的效果不重新渲染（对比 out/gallery/<名字>.json 里记的哈希），--force 全部重渲
 //   每段渲染完量一次首尾接缝：最后一帧到第一帧的变化明显大于平时相邻两帧，就报"接缝跳"；整段几乎不动报"不动"
@@ -26,7 +27,7 @@ const fail = (message) => {
 };
 
 const args = process.argv.slice(2);
-for (const arg of args) if (arg.startsWith("--") && !["--force", "--no-open"].includes(arg)) fail(`不认识的选项 ${arg}`);
+for (const arg of args) if (arg.startsWith("--") && !["--force", "--no-open", "--list"].includes(arg)) fail(`不认识的选项 ${arg}`);
 const force = args.includes("--force");
 const wanted = args.filter((arg) => !arg.startsWith("--"));
 
@@ -37,18 +38,51 @@ const all = fs
 for (const name of wanted) if (!all.includes(name)) fail(`没有这个效果：${name}（src/gallery/effects/${name}.tsx 不存在）`);
 const slugs = wanted.length ? wanted : all;
 
-// 效果文件 + 样片库的公共文件 + src/shared/，任何一个变了都重渲
-const walk = (dir) =>
-  fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-    const p = path.join(dir, e.name);
-    return e.isDirectory() ? walk(p) : [p];
-  });
-const common = [...walk(SRC).filter((p) => !p.startsWith(EFFECTS + path.sep)), ...walk(path.join(ROOT, "src", "shared"))].sort();
-const commonHash = crypto.createHash("sha1");
-for (const p of common) commonHash.update(path.relative(ROOT, p)).update(fs.readFileSync(p));
-const commonDigest = commonHash.digest("hex");
-const hashOf = (slug) =>
-  crypto.createHash("sha1").update(commonDigest).update(fs.readFileSync(path.join(EFFECTS, `${slug}.tsx`))).digest("hex");
+// --list：直接从源码读编号、名字、分组、描述打印出来，不渲染、不开网页。挑样片时照它出选项，不用自己 grep
+if (args.includes("--list")) {
+  const field = (text, key) => text.match(new RegExp(`^\\s*${key}:\\s*(?:"([^"]*)"|(\\d+))`, "m"))?.slice(1).find((v) => v !== undefined);
+  const rows = slugs
+    .map((slug) => {
+      const text = fs.readFileSync(path.join(EFFECTS, `${slug}.tsx`), "utf8");
+      return { slug, no: Number(field(text, "no")), name: field(text, "name"), group: field(text, "group"), desc: field(text, "desc") };
+    })
+    .sort((a, b) => a.no - b.no);
+  for (const r of rows) console.log(`#${r.no}\t${r.name}\t${r.group}\t${r.slug}\t${r.desc}`);
+  console.log(`共 ${rows.length} 个；小片在 out/gallery/<文件名>.mp4，可以直接挂进分镜页的 media`);
+  process.exit(0);
+}
+
+// 哈希只算真正用到的源码：效果文件和它沿相对路径 import 到的文件，加上 index.tsx、kit.tsx 和它们 import 到的。
+// 不能整个 src/shared/ 一起算：别的对话改 src/shared/ 里样片没用到的文件（比如 field/），会让 86 段全部重渲好几分钟
+const IMPORT_RE = /(?:\bfrom\s*|\bimport\s*\(?\s*)["'](\.{1,2}\/[^"']+)["']/g;
+const resolveImport = (spec, fromDir) => {
+  const base = path.resolve(fromDir, spec);
+  const tries = [base, ...[".ts", ".tsx", ".js", ".mjs"].map((x) => base + x), ...["index.ts", "index.tsx"].map((x) => path.join(base, x))];
+  return tries.find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
+};
+const closure = (entries) => {
+  const seen = new Set();
+  const stack = [...entries];
+  while (stack.length) {
+    const file = stack.pop();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const text = fs.readFileSync(file, "utf8");
+    for (const m of text.matchAll(IMPORT_RE)) {
+      const dep = resolveImport(m[1], path.dirname(file));
+      if (dep) stack.push(dep);
+    }
+  }
+  return seen;
+};
+const commonFiles = closure([path.join(SRC, "index.tsx"), path.join(SRC, "kit.tsx")]);
+const hashOf = (slug) => {
+  const own = path.join(EFFECTS, `${slug}.tsx`);
+  const files = [...new Set([...commonFiles, own, ...closure([own])])].sort();
+  const h = crypto.createHash("sha1");
+  for (const p of files) h.update(path.relative(ROOT, p)).update(fs.readFileSync(p));
+  return h.digest("hex");
+};
 
 const sidecar = (slug) => path.join(OUT, `${slug}.json`);
 const readSidecar = (slug) => {

@@ -24,6 +24,7 @@
     "stills": "node scripts/stills.mjs",
     "doctor": "node scripts/doctor.mjs",
     "board": "node scripts/board.mjs",
+    "sketch": "node scripts/sketch.mjs",
     "gallery": "node scripts/gallery.mjs",
     "sync-public": "node scripts/sync-public.mjs"
   },

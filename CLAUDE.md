@@ -20,6 +20,8 @@
   - 它的 Remotion 模板已经放在 `src/shared/motion/`，不再复制到 `src/motioner/`。`motion.ts` 改过 `hexToRgb`，技能更新时对比着合并，不要整个覆盖
   - 它的 Python 脚本（`transition_review.py`、`contact_sheet.py`、`sync_check.py`、`synth_score.py`、`build_mix.py`、`beat_grid.py` 等）在技能目录的 `scripts/` 下，调用技能时会给出目录，不复制进仓库。用 `.venv/Scripts/python.exe` 运行，要的 NumPy、SciPy、Pillow 在 uv 环境里，FFmpeg 在 PATH 上。没装 OpenCV，`transition_review.py` 退回 PIL 解码，审一部 90 秒的片子要几分钟。混音用 `npm run mix`，转场审查和音效对帧用 `npm run review`，它们自己找技能目录
   - 时间线：一个作品一份 `src/videos/<作品>/timeline.json`（不是技能写的 `src/timeline.json`），章节、事件帧、BPM 都只写在这里，画面、配乐、审查计划都读它，别的地方不再手写帧号。其中 `transitions` 直接写成 `transition_review.py` 的计划格式（`[{name, start, end, kind, handoffs?}]`），不另抄一份 transitions.json
+    - 作品里用 `src/shared/timeline.ts` 读：`const tl = timeline(data)` 加载时就查章节有没有首尾相接、铺满整片，事件帧有没有超出片长；`tl.chapterAt(f)`、`tl.local(f)`（本章第几帧和进度）、`tl.event("名字")`（写错名字直接报错）、`tl.beat(n)`、`tl.blend(f, ch => ch.field)`（章节交界处混颜色或数字）。不在作品里再写"现在在哪一章"。2026-10-24 之前的作品是自己写的，不用改
+    - 名字容易混：`gapMs` 是配音的句间停顿，`gap_ms` 是配乐合成的音符间隔，两个不是一回事
   - 配音片的节拍：配音定长度，节拍去迁就它。先用 `layoutVoice` 排好配音，再调章节交界那句的 `pauseAfterMs`，让每个章节起点吸附到最近的整拍，差得多就小幅调 BPM；章节内部的动作和音效照常踩拍。改了 `pauseAfterMs` 要重跑 `npm run voice` 才会写进清单（文字没变的句子不会重新请求）
   - 声音：配乐和音效默认用代码合成，用户点名素材库或别的曲子时才用现成的，这时先跑技能的 `beat_grid.py`，把 BPM 和首拍写进 timeline.json 再排画面。合成用 `npm run mix -- src/videos/<作品>`，依次跑下面四步，改了 timeline.json 就整个重跑：
     - `scripts/make_score.py` 把 timeline.json 转成 `audio/score.json` → 技能的 `synth_score.py audio/score.json --out audio/synth` → `build_mix.py audio/synth/cues.json --out audio/mix.wav`，同时出 `mix.cues.json`（对帧用）、`mix.cues.md`、`mix.timeline.png`
@@ -43,7 +45,7 @@
 - `src/private/<作品>/`：用了商标、他人形象、网络梗图等有版权问题的作品，连私有仓库也不进（不进 git），`Root.tsx` 自动收进 private 分组，用法见 `src/private/README.md`。素材放 `public/private/<作品>/`（同样不进 git），换电脑要自己拷。其他作品照常放 `src/videos/`、`src/stickers/`，它们只进私有仓库，不会公开（见"仓库"）
 - `decks/<名字>/`：演讲稿（PPTX 或 HTML），见"演讲稿"。和作品一样只进私有仓库
 - `src/templates/<名字>/`：用户存下来的模板，每个有 `template.md` 和参数化组件；`ideas.md`：灵感本。见"模板和灵感"
-- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"）
+- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"），`checks/sketch/` 是分镜草图（`ShotSketches` + `npm run sketch`）的示例
 - `src/gallery/`：动效样片库，`effects/` 下一个效果一个文件，见"动效样片库"
 - `public/`：字体、图片、配音、BGM/SFX，代码里用 `staticFile()` 引用。`npm run voice`、`npm run manim` 的产物放在和作品目录对应的位置（`src/videos/foo/` → `public/videos/foo/voice/`、`public/videos/foo/manim/`），跟着提交进私有仓库
 - `public/library/`：用户平时收集的素材库，分 `sfx/`（音效）、`bgm/`（背景音乐）、`svg/`（图标、角色、装饰）、`images/`。清单在 `public/library/index.md`，每个素材一行：描述、来源、许可。直接用 `staticFile("library/...")` 引用，不复制到作品目录。用户放了新素材但没写描述时，帮着补上：图形打开看，音频用 ffprobe 测时长、音量
@@ -82,19 +84,31 @@
   - 用户在消息里已经说清楚的轮次直接跳过。任何一轮用户说"你看着办""随便"，剩下的轮次都按推荐项填，在分镜页里写明选了什么，不再追问
   - 选项写看得见的效果（"格子落进水里泛起涟漪""手绘草图感"），技术名放在说明里。用户说不清想要的动画是常态，靠给具体的画面让用户挑，不靠追问形容词
   - 涉及素材时先查 `public/library/index.md`，`ideas.md` 里有相关的点子也列成选项
-- 任务清单（Claude Desktop 的 `update_plan`）照下面的轮次列：大类和主题 → 故事线和素材 → 属性 → 挑样片 → 风格和手法 → 分镜页定稿 → 样片 → 成片。每一轮的提问卡片和"推进一步"放在同一条消息里发出，答完一轮就推进一轮，不要攒到最后一次打勾。没做的步骤不能标完成（比如没打开样片库，"挑样片"就不算完）
+- 任务清单（Claude Desktop 的 `update_plan`）照下面的轮次列，就这 8 步，不拆不加（调技能不单列一步）：大类和主题 → 故事线和素材 → 属性 → 挑样片 → 风格和手法 → 分镜页定稿 → 样片 → 成片
+  - 每出一张卡片之前先看一眼：这张卡问的事属于清单上哪一步？那一步不是当前"进行中"的，就在出这张卡的同一条消息里用 `{"done": [...], "start": N}` 把清单拨到那一步。所以每轮的第一张卡都带一次清单更新，同一轮后面的卡不用
+  - 对照：大类、主题、时长 → 1；故事线、素材 → 2；用途到片头片尾 → 3；跑 `npm run gallery` 和问编号 → 4；风格、配色、手法 → 5；开分镜页 → 6
+  - 踩过的坑：开场推进了一次，之后连出 8 张卡（主题、时长、故事线、素材、用途、画幅、配音、音乐）一次没动，清单一直停在"问大类"转圈
+  - 没做的步骤不能标完成（比如没打开样片库，"挑样片"就不算完）
 - 视频分这几轮：
   1. 大类：知识讲解、动画短片、产品介绍、片头、音乐可视化、数据故事……只问大类
   2. 小主题和粗略时长：在大类下给具体方向，定了再用下一张卡问时长范围，它决定后面能装多少内容
   3. 整体内容：给三条真正不同的故事线（不是同一个故事的三种说法），每条两三句讲清开头、中段、结尾。同一轮问用户有没有素材（截图、插画、Logo、录音），有的话建 `public/videos/<作品>/materials/`，按用途分子文件夹，写一份 `README.md` 说明每个文件夹放什么、文件怎么命名（比如 `s03-截图-登录页.png`，前缀是镜头编号），用 `explorer` 打开给用户
   4. 属性按这个顺序一张一张问，前面的答案决定后面的选项：用途和发在哪 → 横竖屏和分辨率 → 精确时长 → 配音和用哪个声音 → 音乐方向（推荐代码合成、踩着画面的拍子，素材库有合适的列成备选）→ 要不要片头片尾。用途放第一个，因为它决定画幅和要不要封面（发 B 站才问封面）。帧率、字幕照"不用问的不问"处理
+     - 精确时长要出卡问，不算"不用问的"：第 2 轮只定了范围（比如 45–60 秒），选项在这个范围里按故事线的段数给 2–3 个具体秒数（"56 秒：五段各约 11 秒（推荐）"）。用户第 2 轮已经说了确切秒数才跳过。踩过：跳过这张卡，自己定了 56 秒
   5. 风格和动效：
-     - 先挑样片，这一步不能省：跑 `npm run gallery` 打开动效样片库，再出一张卡问"喜欢哪几个编号"，选项带一个"没有特别喜欢的，你看着办"，用户也可以在"其他"里写"要 #3 的感觉，但慢一点"。挑中的编号和名字写进分镜页对应镜头的 `动效`。源码没变的样片不重渲，打开只要几秒，别拿"样片多、渲染慢"当理由跳过（踩过）
+     - 先挑样片，这一步不能省：跑 `npm run gallery` 打开动效样片库，再出一张卡问"喜欢哪几个编号"。直接跑，不用先读样片源码、数文件（踩过：先跑了 5 条命令看目录）；出选项要的编号、名字用 `npm run gallery -- --list` 一次拿到，不 grep 源码
+       - 卡片的选项：2–3 组按这次内容推荐的编号组合（每组写编号和名字，比如"#16 推镜穿过圆窗 + #18 颜色从按钮里涌出"，说明写为什么配这片），最后一个是"没有特别喜欢的，你看着办"。只有第一个标"（推荐）"。题目里写明"喜欢别的编号就在'其他'里写，也可以写'要 #3 的感觉，但慢一点'"：86 个里只摆 4 个单独的编号，等于替用户挑了（踩过）
+       - 挑中的编号和名字写进分镜页对应镜头的 `motion` 开头（"样片 #16 推镜穿过圆窗：……"），`media` 里挂 `out/gallery/<文件名>.mp4`，写法见 `scripts/board/example.json` 的 s1。踩过：挑了 #16、#18，分镜页里一个编号都没有
+       - 样片源码没变时不到 1 秒就打开，别拿"样片多、渲染慢"当理由跳过（踩过）。它开头报"要渲染 N 个"就是样片用到的代码真改过，几十个要几分钟：用 Bash 的后台模式跑，跟用户说要等几分钟，跑完会有通知，不用 `sleep` 轮询；等的工夫可以先出风格那几张卡（清单拨到 5），网页打开了再拨回 4 问编号，两步都做完才各自标完成
      - 再一张一张问风格方向、配色，再按 `techniques.md` 的选型表问画面手法（多选）。`techniques.md` 不会自动读进来，问之前先读它；说明里写用什么技术、调哪个技能、成本和坑，第一个推荐项按内容挑。选了还没接入的技术（表里标"未接入"）要说明这次会顺带搭起来、大概多花多少工夫。画面用代码画还是生图也在这一轮定（见"生图"）
-  6. 分镜评审页：问完第 5 轮马上开页面，不先写片子。先在对话里用几句大白话讲概念四行，再写分镜表、配粗略草图，用户在浏览器里逐个镜头留言，改到用户点"定稿"。见下面"分镜评审页"
-     - 定稿前只做便宜的草图：挂样片库的片子、几张静帧、几秒低分辨率草稿，每个镜头花几分钟。不写 `timeline.json`，不逐帧写整部片，不改 `src/shared/` 和别的作品。草稿 Composition 可以先建在作品目录里，定稿后照定下来的改成正式的
-     - 踩过的坑：问完风格就直接写了整部片（时间线、逐帧画面、三个图层），花了半小时自己出图修图，快做完才开分镜页。用户要是否定方向，这些就白做了
-  7. 样片：挑全片最难或最有代表性的 5–10 秒（不一定是开头），按成片的画质和声音做，改到用户满意。只渲染这一段：`npx remotion render <id> out/<id>-sample.mp4 --frames=<起>-<止> --muted`，再用 FFmpeg 从 `fullmix.wav` 截同一段时间（起帧 ÷ 帧率）合进去
+  6. 分镜评审页：问完第 5 轮马上开页面，不先写片子。见下面"分镜评审页"
+     - 顺序：在对话里用几句大白话讲概念四行（单独一段，不埋在别的话里）→ 写只有文字的 `board.json`（镜头表、样片编号和样片的 `media`）→ 马上用 `run_in_terminal` 打开页面 → 再一个镜头一个镜头补草图。页面每 1.5 秒自动刷新，草图出一张页面上多一张，用户不用干等。问完到页面打开应在 10 分钟内
+     - 草图只做到这个程度：每个镜头一两张静帧，各画各的。写法：作品的 `index.tsx` 用 `src/shared/sketch.tsx` 的 `<ShotSketches prefix shots={{ s1: { component: S1 }, … }} />` 一个镜头注册一个小 Composition（键名和 board.json 的镜头 id 一样），board.json 写 `"sketch": "<prefix>"`，再 `npm run sketch -- src/videos/<作品>` 出到 `out/board/<作品>/<镜头>.png`，它会列出哪些图还没挂进 `media`。示例 `src/checks/sketch/`。不做镜头之间的衔接，不逐帧修接缝，不对拍子（BPM、章节落在第几拍只当数字写进分镜页），不调配乐。草图里看到的毛病写进那个镜头的 `questions` 或说明，不去修
+     - 限时：一个镜头的草图超过 5 分钟左右还没出来，就先只留文字，在说明里写"草图后补"
+     - 不写 `timeline.json`，不逐帧写整部片，不改 `src/shared/` 和别的作品。草稿 Composition 建在作品目录里，定稿后照定下来的改成正式的
+     - 第一轮的提问是"请在页面上逐个镜头留言，看完回来说'看留言'"，不问"能定稿吗"：用户还没留过一条言
+     - 踩过的坑（两次）：第一次问完风格就写了整部片（时间线、逐帧画面、三个图层），半小时后才开分镜页。第二次规则已经写了"只做草图"，还是把 56 秒整片写成一个 586 行的"草稿 Composition"，又花 20 分钟逐帧修第 1255–1263 帧的接缝、把章节挪到整拍上，问完 32 分钟才开页面。草稿只要画得出来就会一路修下去，所以先开页面、草图按镜头分开画、不修
+  7. 样片：挑全片最难或最有代表性的 5–10 秒（不一定是开头），按成片的画质和声音做，改到用户满意。只渲染这一段：`npm run video -- <id> --frames=<起>-<止> --mix=public/videos/<作品>/audio/fullmix.wav`，混音会自动从起帧对应的时间截同一段合进去，出 `out/<id>-f<起>-<止>.mp4`
   8. 成片：照"工作方式"渲染、转场审查、音效对帧后交付
 - 表情走精简版：大类（反应、打招呼、节日……）→ 梗或台词 → 角色（用户给的图、代码画，还是生图）、动作、帧率和帧数、透明还是带底色、单个还是一套 → 风格和画法（代码画的话按 `techniques.md` 挑平涂类的手法：SVG、Rough.js、Lottie、Zdog）→ 分镜评审页（每个表情一个镜头，配静帧或草稿 GIF）→ 先做一个表情当样片，满意了再做全套
 
@@ -106,7 +120,7 @@
   - 顶层写标题、轮次 `round`（从 1 起）、一段话的概要、规格、概念四行（种子、章节动词、变成链、首尾呼应）、节拍和声音、要用户拍板的 `questions`
   - 每个镜头写时间、第几拍、章节、画面、动效、运镜、转场、声音、技术，`why` 写为什么这么做
   - 写数字不写形容词："镜头 1.5 秒推近到 1.3 倍""涟漪每拍一圈"，不写"流畅""高级感"。拿不准的点写进镜头的 `questions`
-  - 动画光靠文字说不清，每个镜头尽量在 `media` 里挂几秒粗草图（`npx remotion render <id> out/board/<作品>/s1.mp4 --frames=<起>-<止> --scale=0.5`）或几张静帧（`npm run stills`）；用户挑中的样片可以直接挂 `out/gallery/<名字>.mp4`。草图只能放在 `out/`、`public/` 或作品目录里
+  - 动画光靠文字说不清，每个镜头在 `media` 里先挂用户挑中的样片 `out/gallery/<文件名>.mp4`（文件名用 `npm run gallery -- --list` 查），再挂一两张静帧草图（`npm run sketch`，见第 6 轮）。几秒的动态草稿（`npm run video -- <id> --frames=<起>-<止> --draft --out=out/board/<作品>/s1.mp4`）只在某一镜的动作用样片和静帧都说不清时才做。草图只能放在 `out/`、`public/` 或作品目录里
   - 表情用的是同一个页面：每个表情一个镜头，`media` 挂静帧和草稿 GIF
 - 打开：用 `run_in_terminal` 在用户的终端面板里跑 `npm run board -- src/videos/<作品>`（表情是 `src/stickers/<套系>`），它在 3200 起的空端口起本地服务器并打开浏览器。不要用 Bash 跑，它要一直开着。页面每 1.5 秒自动刷新，改了分镜或草图不用叫用户刷新
 - 一轮循环：
@@ -124,7 +138,7 @@
 - 每个效果有固定编号和中文名（写看得见的效果，比如"#1 格子落水泛涟漪"），分组：文字、形状、水墨、线条、转场、数据、镜头、粒子、质感、背景、特效。用户按编号点名，编号不重排，新效果接着往后编
 - 样片只演动效，配色是 `kit.tsx` 里的中性占位色，作品里照用户的风格换。做作品时把样片的代码抄进作品目录改，不 import `src/gallery/`
 - 加效果：照 `effects/grid-ripple.tsx` 写，默认导出 `GalleryEffect`（编号、名字、分组、一句话描述、技术、帧数、组件），`index.tsx` 自动收进 Studio 的 gallery 分组，id 是 `G-<文件名>`。3–5 秒、首尾无缝、一段只演一种效果
-- 源码没变的不重渲（哈希记在 `out/gallery/<名字>.json`），`--force` 全部重渲。网页的格子放 480×270 的小片（`<名字>.small.mp4`）和封面，只播屏幕上看得见的，点开放大才播原片：二十几段原片一起解码网页会卡。每段渲染完量首尾接缝：报"接缝跳"是最后一帧接不回第一帧，报"不动"是整段几乎没变化，都要修好再给用户看
+- 源码没变的不重渲（哈希记在 `out/gallery/<名字>.json`），`--force` 全部重渲。哈希只算这个效果沿相对路径 import 到的文件，加上 `index.tsx`、`kit.tsx` 和它们 import 到的；改 `src/shared/` 里样片没用到的文件不会触发重渲（以前整个 `src/shared/` 一起算，别的对话改了样片没用到的着色器引擎，就让 86 段全部重渲了好几分钟）。字体文件、npm 包升级不在哈希里，要重渲加 `--force`。网页的格子放 480×270 的小片（`<名字>.small.mp4`）和封面，只播屏幕上看得见的，点开放大才播原片：二十几段原片一起解码网页会卡。每段渲染完量首尾接缝：报"接缝跳"是最后一帧接不回第一帧，报"不动"是整段几乎没变化，都要修好再给用户看
 - 做作品时搭出来的、能复用的效果，问用户要不要收进样片库
 
 ## 作品方案
@@ -153,6 +167,7 @@
 ## 工作方式
 
 - 先在 Studio 里预览，用户明确要成片时才渲染。转场审查和分镜评审页要用的草稿自己渲染就行，不用等用户开口；样片是用户定稿后要的，也照常渲染。视频成片用 `npm run video -- <id>`（有合成混音时加 `--mix=…`），它渲染完会校验规格、像素格式和响度；有"不合格"就修，"注意"跟用户说明
+- 改一版要看效果时先用草稿档，不整片出成片：`--draft` 是半分辨率、crf 28、x264 ultrafast，`--frames=<起>-<止>` 只渲改了的那一段，两个可以一起用。整片出成片只在用户要成片、或者交付前审查时。踩过：一部 60 秒的着色器片子每遍 24 分钟，改了十几遍、跑了六七个小时。只渲一段或草稿档时不量响度。草稿档省的是画面计算，打包每次固定要几秒，简单的 SVG 片子快不了多少，重的画面（WebGL、大量粒子）才明显
 - 环境出怪问题、换了电脑或升级了工具，先跑 `npm run doctor`
 - 交付前用 `npm run contact -- <id>` 出关键帧预览图（或 `npx remotion still` 渲染单帧），自己看过再交
 - 视频交付前还要跑 `npm run review -- src/videos/<作品> out/<id>.mp4`：
@@ -165,7 +180,7 @@
 - 没有固定风格。每次按用户在对话里描述的风格做；用户没指定时，按内容挑合适的，简单说明理由，方便用户再改。不要把某个作品的风格做成全局主题或默认配色
 - 字体随每次的风格挑选，但都要显式加载，不依赖系统字体：
   - 本地的可商用字体放 `public/fonts/`，用 `@remotion/fonts` 加载
-  - Google Fonts 上的中文字体（站酷快乐体、马善政楷书、志莽行书等）用 `@remotion/google-fonts` 加载，第一次用到时再安装
+  - Google Fonts 上的中文字体（站酷快乐体、马善政楷书、志莽行书等）用 `@remotion/google-fonts` 加载，第一次用到时再安装。不在模块顶层调 `loadFont()`：`Root.tsx` 会 import 全部作品，一个作品在顶层拉字体，渲染别的作品时也会去请求 Google Fonts，断网就整个崩。用 `src/shared/googleFont.ts` 的 `lazyFont` 包一层，字体族名写成常量，在作品的根组件里调一次加载：`const MONO = "JetBrains Mono"; const loadFonts = lazyFont(() => loadMono("normal", {...}));`，根组件开头 `loadFonts();`
   - 没有特别要求时用思源黑体
 - 作品要用到还没有的能力时（比如音乐卡点、3D），在做这个作品时一起搭。其中能复用、和题材风格都无关的部分放进 `src/shared/` 或 `scripts/`，并写进本文件，后面的对话直接用
 - 改 `src/shared/`、`scripts/` 里已有的代码之前，先用 `git status` 看那几个文件有没有别的对话没提交的改动，有就先问用户。改完把用到它的作品和自检各渲染一帧（`npx remotion still`），渲染过了才能说"别的还能跑"
@@ -278,13 +293,15 @@
 - `npm run dev`：打开 Studio
 - `npm run lint`：ESLint + TypeScript 检查
 - `npx remotion still <id> out/<名字>.png --frame=<帧号>`：渲染单帧
+- `npm run video -- <id> [--draft] [--frames=<起>-<止>]`：草稿档（半分辨率、快编码）或只渲一段，混音跟着截同一段，看效果、做样片用，见"工作方式"
 - `npm run video -- <id> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]`：渲染视频成片（yuv420p、bt709）并校验分辨率、帧率、帧数、像素格式、音轨时长、响度（目标 -14±3 LUFS）和 true peak（≤ -1 dBTP）；`--mix` 时画面静音渲染、FFmpeg 合入混音；`--gl`、`--concurrency` 给 WebGL 画面用（见"画面手法"）；`npm run video -- <文件.mp4>` 只校验
 - `npm run review -- src/videos/<作品> <成片.mp4> [--only=transitions|sync] [--mix=<混音.wav>]`：motioner 的转场审查和音效对帧，结果在 `out/review/<作品>/`。技能目录找不到时设 `MOTIONER_DIR`
 - `npm run mix -- src/videos/<作品>`：timeline.json → 总谱 → 合成 → 按帧混音 → 配音和母带，出 `public/videos/<作品>/audio/fullmix.wav`，约 1–2 分钟。只改了 `voiceMix` 时单独跑 `.venv/Scripts/python.exe scripts/voice_mix.py src/videos/<作品> [--bed-gain=<dB>] [--voice-gain=<dB>]`，增益缺省读 timeline.json 的 `voiceMix`
 - `npm run stills -- <id> <帧号…> [--scale=0.5] [--out=out/stills/<id>]`：一次打包渲染多张单帧，比逐张 `npx remotion still` 快
 - `npm run sync-public [-- --push] [--ref=main] [--message=<说明>]`：把工作台同步到公开仓库，缺省只预演，见"仓库"
 - `npm run board -- <作品目录> [--list] [--resolve=<编号,…> --reply=<回复>] [--no-open]`：分镜评审页，见"开工前先问清楚"
-- `npm run gallery [-- <名字…>] [--force] [--no-open]`：渲染动效样片库并打开网页，见"动效样片库"
+- `npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5]`：把 `<ShotSketches>` 注册的每个镜头渲成静帧，出在 `out/board/<作品>/`，对照 board.json 列出没挂上的图
+- `npm run gallery [-- <名字…>] [--force] [--no-open] [--list]`：渲染动效样片库并打开网页，见"动效样片库"；`--list` 只打印编号、名字、分组、文件名和描述
 - `npm run doctor`：环境预检（Node、FFmpeg、gifski、uv 和 Python 依赖、TeX、字体、motioner 技能目录、.env 是否填好）
 - `npm run voice -- src/videos/<作品>`：生成配音和逐词时间，加 `--force` 全部重新生成；`npm run voice -- --voices` 列出中文语音
 - `npm run manim -- src/videos/<作品>/scenes.py [场景名…] [--fps=30] [--size=1920x1080]`：渲染透明的 Manim 片段，不写场景名就渲染全部
