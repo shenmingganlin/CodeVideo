@@ -52,7 +52,7 @@ const PUBLISH = [
 // 只发布表头：Markdown 表格去掉数据行，说明文字和表头留着
 const SKELETON = ["ideas.md", "public/library/index.md"];
 // 作品和素材，只留在私有仓库
-const PRIVATE = ["src/videos/", "src/stickers/", "src/private/", "public/videos/", "public/stickers/", "public/private/", "public/library/"];
+const PRIVATE = ["decks/", "src/videos/", "src/stickers/", "src/private/", "public/videos/", "public/stickers/", "public/private/", "public/library/"];
 
 const USAGE = "用法：npm run sync-public [-- --push] [--ref=main] [--message=<说明>]";
 const fail = (message) => {

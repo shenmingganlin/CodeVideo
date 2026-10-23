@@ -10,7 +10,7 @@
 - 写 Remotion 代码时，用到字幕、音频、渲染、Studio、转场、动态模糊、漏光、effects、Lottie、地图、3D、GIF 之类的具体 API，按需调用 `remotion-best-practices`（它的描述只有一句"Router for all Remotion skills"，不会自己冒出来，要主动调）；写 Manim 场景前调用 `manimce-best-practices`
 - 顺序：新视频先调 motioner → 照"开工前先问清楚"分轮提问，画面手法这一项先读 `techniques.md` 再问 → 写分镜评审页，改到定稿 → 样片 → 成片。动手写某种手法的代码前，调它在选型表里对应的技能或子文档
 - 技能的示例和本文件冲突时以本文件为准：Composition 不写进 `Root.tsx`，建作品目录的 `index.tsx`；Lottie 用 `<LottieClip>`，不直接用 `<Lottie>`；地图用 `<MapLibre>`；规格、风格、配色照本文件
-- 名字相近但不用于本项目的技能：`algorithmic-art`（出独立的 p5 HTML）、`canvas-design`（出 PNG/PDF 海报）、`slack-gif-creator`（Slack 规格的 GIF，和表情规格冲突）、`hana-design-studio`（HTML 课件）、`archify-diagrams`（HTML 图表），以及 `visual-design`、`ui-ux-pro-max`、`impeccable-design`、`frontend-design`、`theme-factory` 这类界面设计和配色主题技能。它们的产物进不了 Remotion，自带的配色字体还会盖掉用户这次说的风格。视频、表情、封面一律在 Remotion 里做，构思可以借鉴，产物照本文件的流程出。用户点名要用其中某个时照用户说的
+- 名字相近但不用于本项目的技能：`algorithmic-art`（出独立的 p5 HTML）、`canvas-design`（出 PNG/PDF 海报）、`slack-gif-creator`（Slack 规格的 GIF，和表情规格冲突）、`hana-design-studio`（HTML 课件；HTML 演讲稿用 `frontend-slides`，见"演讲稿"）、`archify-diagrams`（HTML 图表），以及 `visual-design`、`ui-ux-pro-max`、`impeccable-design`、`frontend-design`、`theme-factory` 这类界面设计和配色主题技能。它们的产物进不了 Remotion，自带的配色字体还会盖掉用户这次说的风格。视频、表情、封面一律在 Remotion 里做，构思可以借鉴，产物照本文件的流程出。用户点名要用其中某个时照用户说的
 - 表情包不调 motioner，它是为成片写的
 - 用户装的 superpowers 插件每次开场都要求"先 brainstorming 再动手"。本项目做视频和表情不走它的 brainstorming、writing-plans、executing-plans：问需求照"开工前先问清楚"，方案只写作品目录的 `brief.md`，不在 `docs/superpowers/` 下写 spec 或 plan，也不为它们单独提交。改脚本、查 bug 时它的 systematic-debugging、verification-before-completion 照常用
 - 和本文件的分工：
@@ -41,6 +41,7 @@
 - `src/videos/<作品>/`：一个视频一个目录，不按题材分。配音台词 `voice.json`、Manim 场景 `*.py`、分镜评审页的 `board/` 也放在这里
 - 每个作品目录（视频或表情套系）都有一份 `brief.md`，见"作品方案"
 - `src/private/<作品>/`：用了商标、他人形象、网络梗图等有版权问题的作品，连私有仓库也不进（不进 git），`Root.tsx` 自动收进 private 分组，用法见 `src/private/README.md`。素材放 `public/private/<作品>/`（同样不进 git），换电脑要自己拷。其他作品照常放 `src/videos/`、`src/stickers/`，它们只进私有仓库，不会公开（见"仓库"）
+- `decks/<名字>/`：演讲稿（PPTX 或 HTML），见"演讲稿"。和作品一样只进私有仓库
 - `src/templates/<名字>/`：用户存下来的模板，每个有 `template.md` 和参数化组件；`ideas.md`：灵感本。见"模板和灵感"
 - `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"）
 - `public/`：字体、图片、配音、BGM/SFX，代码里用 `staticFile()` 引用。`npm run voice`、`npm run manim` 的产物放在和作品目录对应的位置（`src/videos/foo/` → `public/videos/foo/voice/`、`public/videos/foo/manim/`），跟着提交进私有仓库
@@ -230,6 +231,22 @@
 - 生成的图旁边有同名 `.json` 记提示词和参数。要留作素材的放进 `public/library/images/` 并在清单里记来源"猫肥生图 gpt-image-2.5-sunburst"
 - 做表情：提示词要求"大轮廓、粗深色描边、少细节、透明背景"（240×240 下细节看不清）；生成后用 `npm run sticker-art -- <图.png>… --out=public/stickers/<套系>/` 处理：裁掉空白、缩到长边 200、透明度二值化、加不透明外描边。同一角色的差分图一起处理，一样大的图共用一个裁剪框，输出完全对齐，可以直接来回切换；不是差分的图分开处理（一起处理时内容范围重合度低于 0.5 会提示）。输出文件名和原图一样，所以生图原图别放在 `--out` 目录里：会盖掉原图时脚本直接报错，原图要留着做图生图。用法示例是 `src/checks/StickerArtCheck.tsx`（眨眼 + 呼吸）
 - 插画颜色多，GIF 体积容易超过 500KB，一般会走 gifski；还超就减少帧数或缩小角色
+
+## 演讲稿
+
+工作台也做演讲稿，用两个装在用户目录的技能（`~/.claude/repos/` 下的 git 克隆，停在版本标签上，用目录联接挂进 `~/.claude/skills/`），不进本仓库：
+
+- 选哪个：
+  - 要在 PowerPoint、WPS 里打开和改的 PPTX：`ppt-master`（hugohe3/ppt-master v6.7.3，MIT）。页面先写成 SVG，再导出原生可编辑的 PPTX；它自带浏览器实时预览，用户在页面元素上留意见，助手跑它的 `check_annotations.py` 处理
+  - 在浏览器里放、带动画的单文件 HTML 演讲稿：`frontend-slides`（zarazhangrui/frontend-slides v2.1.0，MIT），零依赖。导出 PDF 会丢动画
+  - 视频照样用 Remotion 做，这两个不出视频画面
+- 用户要演讲稿时，先问要 PPTX 还是网页，再调对应技能，照技能自己的流程走。提问照样用选项卡片、用中文，不加"自己补充"选项
+- 作品放 `decks/<名字>/`，只进私有仓库（`sync-public` 不发布）。ppt-master 建项目时加 `--dir decks`，不然会建在当前目录的 `projects/` 下；它建的目录名带画幅和日期
+- ppt-master 的 Python：技能里写的 `python3` 一律换成 `~/.claude/repos/ppt-master/.venv/Scripts/python.exe`。这是 uv 建的独立环境，实际装的版本记在 `~/.claude/repos/ppt-master/requirements.lock.txt`，不装进本仓库的 `.venv`
+- ppt-master 的生图（`image_gen.py`）先不用：它读当前目录的 `.env`，也就是本仓库的生图配置，两边的后端设置对不上。要配图用本仓库的 `npm run image`，照"生图"那节先问用户
+- frontend-slides 的 `deploy.sh` 会把演讲稿发布到 Vercel 公网，用户明确要才跑；`export-pdf.sh` 在临时目录装 Playwright 和 Chromium，不碰本仓库
+- ppt-master 的环境里有 PyMuPDF（AGPL-3.0），别把它或它的代码带进本仓库
+- 更新：`git -C ~/.claude/repos/<技能> fetch --tags` 后 checkout 新的版本标签；ppt-master 再跑 `uv pip install --python .venv/Scripts/python.exe -r skills/ppt-master/requirements.txt`，重新导出 `requirements.lock.txt`。不用它自带的 `update_repo.py`：克隆停在标签上，不在分支上
 
 ## 封面
 
