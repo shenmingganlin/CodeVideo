@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>分镜评审</title>
+    <link rel="stylesheet" href="/page.css" />
+  </head>
+  <body>
+    <header id="bar">
+      <div class="bar-title"><span id="title">分镜评审</span> <span id="round" class="chip"></span></div>
+      <div class="bar-right">
+        <span id="offline" hidden>服务器断开了，重新运行 npm run board 后会自动接上</span>
+        <span id="open-count"></span>
+        <span id="approved"></span>
+        <button id="approve" type="button">这一轮定稿</button>
+      </div>
+    </header>
+    <div id="banner" hidden></div>
+    <nav id="strip"></nav>
+    <main id="main"><p class="hint">加载中…</p></main>
+    <div id="toast" hidden></div>
+    <script src="/page.js"></script>
+  </body>
+</html>
