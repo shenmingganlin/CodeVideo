@@ -23,6 +23,7 @@
     - 作品里用 `src/shared/timeline.ts` 读：`const tl = timeline(data)` 加载时就查章节有没有首尾相接、铺满整片，事件帧有没有超出片长；`tl.chapterAt(f)`、`tl.local(f)`（本章第几帧和进度）、`tl.event("名字")`（写错名字直接报错）、`tl.beat(n)`、`tl.blend(f, ch => ch.field)`（章节交界处混颜色或数字）。不在作品里再写"现在在哪一章"。2026-10-24 之前的作品是自己写的，不用改
     - 名字容易混：`gapMs` 是配音的句间停顿，`gap_ms` 是配乐合成的音符间隔，两个不是一回事
   - 配音片的节拍：配音定长度，节拍去迁就它。先用 `layoutVoice` 排好配音，再调章节交界那句的 `pauseAfterMs`，让每个章节起点吸附到最近的整拍，差得多就小幅调 BPM；章节内部的动作和音效照常踩拍。改了 `pauseAfterMs` 要重跑 `npm run voice` 才会写进清单（文字没变的句子不会重新请求）
+  - 反过来，画面定长度、配音往里塞的片子（动作要演多久就多久）：在 timeline.json 写 `voiceAt`（每句第一个词开口的帧），`npm run place-voice -- src/videos/<作品>` 反推每句的 `pauseAfterMs` 和 `leadInMs`，前一句没读完后一句就要开口时直接报错、列出差多少帧，再 `npm run voice`。不手调停顿
   - 声音：配乐和音效默认用代码合成，用户点名素材库或别的曲子时才用现成的，这时先跑技能的 `beat_grid.py`，把 BPM 和首拍写进 timeline.json 再排画面。合成用 `npm run mix -- src/videos/<作品>`，依次跑下面四步，改了 timeline.json 就整个重跑：
     - `scripts/make_score.py` 把 timeline.json 转成 `audio/score.json` → 技能的 `synth_score.py audio/score.json --out audio/synth` → `build_mix.py audio/synth/cues.json --out audio/mix.wav`，同时出 `mix.cues.json`（对帧用）、`mix.cues.md`、`mix.timeline.png`
     - `scripts/voice_mix.py`：按 `layoutVoice` 的帧号把配音铺上去（没有配音就只做母带），用 `build_mix.py` 的线性增益 + 限幅器压到 -14 LUFS，出 `public/videos/<作品>/audio/fullmix.wav`（`src/private/` 的作品对应 `public/private/`）。没有配音也要这一步：`build_mix.py` 自己的响度表有个优先级错误，读数偏高 3–6 dB，`mix.wav` 实际偏轻，`voice_mix.py` 会把它修正了再测
@@ -45,7 +46,8 @@
 - `src/private/<作品>/`：用了商标、他人形象、网络梗图等有版权问题的作品，连私有仓库也不进（不进 git），`Root.tsx` 自动收进 private 分组，用法见 `src/private/README.md`。素材放 `public/private/<作品>/`（同样不进 git），换电脑要自己拷。其他作品照常放 `src/videos/`、`src/stickers/`，它们只进私有仓库，不会公开（见"仓库"）
 - `decks/<名字>/`：演讲稿（PPTX 或 HTML），见"演讲稿"。和作品一样只进私有仓库
 - `src/templates/<名字>/`：用户存下来的模板，每个有 `template.md` 和参数化组件；`ideas.md`：灵感本。见"模板和灵感"
-- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"），`checks/sketch/` 是分镜草图（`ShotSketches` + `npm run sketch`）的示例，`CanvasCheck`、`ShaderCheck`、`ThreeCheck` 是 Canvas 2D、着色器、Three.js 图层的示例
+- `guides/`：不是每次都用的细则，用到时才读：表情（`stickers.md`）、地图（`maps.md`）、生图（`image-gen.md`）、演讲稿（`decks.md`）。本文件只留一行指路，免得每一轮对话都带着
+- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"），`checks/sketch/` 是分镜草图（`ShotSketches` + `npm run sketch`）的示例，`CanvasCheck`、`ShaderCheck`、`ThreeCheck` 是 Canvas 2D、着色器、Three.js 图层的示例，`LayoutCheck` 是版面检查（`npm run layout`）的自检，应该正好报出三处
 - `src/gallery/`：动效样片库，`effects/` 下一个效果一个文件，见"动效样片库"
 - `public/`：字体、图片、配音、BGM/SFX，代码里用 `staticFile()` 引用。`npm run voice`、`npm run manim` 的产物放在和作品目录对应的位置（`src/videos/foo/` → `public/videos/foo/voice/`、`public/videos/foo/manim/`），跟着提交进私有仓库
 - `public/library/`：用户平时收集的素材库，分 `sfx/`（音效）、`bgm/`（背景音乐）、`svg/`（图标、角色、装饰）、`images/`。清单在 `public/library/index.md`，每个素材一行：描述、来源、许可。直接用 `staticFile("library/...")` 引用，不复制到作品目录。用户放了新素材但没写描述时，帮着补上：图形打开看，音频用 ffprobe 测时长、音量
@@ -62,14 +64,7 @@
 ## 默认规格
 
 - 视频：用户没说规格时用 1920×1080、30fps；要竖屏、方形或别的规格时，照用户说的来
-- 表情包只做自用主图，不做上架用的封面、图标、横幅：
-  - 240×240 GIF，≤500KB，无限循环
-  - 帧率用 20 或 25。GIF 帧时长以 1/100 秒计，15fps 会节奏不均；50fps（每帧 2/100 秒）文件本身合法，但微信播放时会把这么短的帧往上取整，实测整个慢一倍，不要用
-  - 首尾帧要能无缝衔接
-  - 透明背景时，角色外圈加不透明描边，用深色或角色本身的颜色，不用白色。成品放在 #EDEDED（微信浅色底）和 #111111（深色底）上各检查一遍
-  - 透明背景上不用半透明的光晕和柔和阴影：Remotion 导出会直接把它们丢掉，gifski 会把它们抖成一圈点
-  - 导出和校验统一用 `npm run sticker -- <id>`（`scripts/sticker.mjs`）。它先用 Remotion 自带的 GIF 导出，平涂画面这样效果最好；超过 500KB 就自动改用 PNG 序列 + gifski，quality 按 90、80、70、60、50 往下降直到达标。降到 50 还超就报体积"不合格"，不会自己减帧或缩图，这时减少帧数或缩小角色。渐变多的画面用 gifski 体积能小约 40%，但会带一点颗粒
-  - 导出后会校验尺寸、体积、循环、帧时长和首尾接缝，并在 `out/stickers/` 生成浅色底、深色底的抽帧预览图（校验现成的 GIF 时也放这里）。帧时长：有短于 4/100 秒（超过 25fps）或为 0 的帧算"不合格"；不是每帧 4 或 5/100 秒（比如 10fps）、或者忽快忽慢算"注意"；编码器把相同帧合并成整数倍的长帧不算问题。"透明背景"看的是解码后的像素。交付前看一遍预览图；有"不合格"就修好再交，"注意"要跟用户说明
+- 表情包：240×240 GIF、≤500KB、帧率 20 或 25、无限循环、首尾无缝，`npm run sticker -- <id>` 导出校验。做表情前先读 `guides/stickers.md`（规格细则、透明背景的描边、生图转素材、导出命令）
 
 ## 开工前先问清楚
 
@@ -106,6 +101,8 @@
      - 草图只做到这个程度：每个镜头一两张静帧，各画各的。写法：作品的 `index.tsx` 用 `src/shared/sketch.tsx` 的 `<ShotSketches prefix shots={{ s1: { component: S1 }, … }} />` 一个镜头注册一个小 Composition（键名和 board.json 的镜头 id 一样），board.json 写 `"sketch": "<prefix>"`，再 `npm run sketch -- src/videos/<作品>` 出到 `out/board/<作品>/<镜头>.png`，它会列出哪些图还没挂进 `media`。示例 `src/checks/sketch/`。不做镜头之间的衔接，不逐帧修接缝，不对拍子（BPM、章节落在第几拍只当数字写进分镜页），不调配乐。草图里看到的毛病写进那个镜头的 `questions` 或说明，不去修
      - 限时：一个镜头的草图超过 5 分钟左右还没出来，就先只留文字，在说明里写"草图后补"
      - 不写 `timeline.json`，不逐帧写整部片，不改 `src/shared/` 和别的作品。草稿 Composition 建在作品目录里，定稿后照定下来的改成正式的
+     - 先算再写：台词或画面说的是算出来的事实（哪个圆最大、谁反着转、剩三个圆时像什么、曲线过不过某点、数据的最大值在哪），写进分镜页之前先用一小段脚本把它算出来，结果和用的参数写进那个镜头的说明。算出来和想的不一样，就改台词或改素材，再定稿。这不算"逐帧写整部片"，只算数、不画画面。踩过：一部讲解片的分镜写的画面事实是凭印象定的，到样片才算出来不成立，素材、笔顺、排序全部返工
+     - 版面分区：画面上同时有主体和字（公式、标注、字幕）的镜头，在说明里写每块占的矩形（"公式区 右上 x 1020–1866、y 96–480；波 y 420–900"），算一下会不会撞：数字会变长的（"剩 9 个圆"→"剩 100 个圆"）按最长的算，会动的主体按它跑到的最远处算。成片前 `npm run layout` 再逐帧查一遍
      - 第一轮的提问是"请在页面上逐个镜头留言，看完回来说'看留言'"，不问"能定稿吗"：用户还没留过一条言
      - 踩过的坑（两次）：第一次问完风格就写了整部片（时间线、逐帧画面、三个图层），半小时后才开分镜页。第二次规则已经写了"只做草图"，还是把 56 秒整片写成一个 586 行的"草稿 Composition"，又花 20 分钟逐帧修第 1255–1263 帧的接缝、把章节挪到整拍上，问完 32 分钟才开页面。草稿只要画得出来就会一路修下去，所以先开页面、草图按镜头分开画、不修
   7. 样片：挑全片最难或最有代表性的 5–10 秒（不一定是开头），按成片的画质和声音做，改到用户满意。只渲染这一段：`npm run video -- <id> --frames=<起>-<止> --mix=public/videos/<作品>/audio/fullmix.wav`，混音会自动从起帧对应的时间截同一段合进去，出 `out/<id>-f<起>-<止>.mp4`。交给用户前审一遍：`npm run review -- src/videos/<作品> out/<id>-f<起>-<止>.mp4 --frames=<起>-<止>`，转场计划和音效清单自动平移，基线混音截同一段，打印的帧号是全片的，结果在 `out/review/<作品>-f<起>-<止>/`。别自己拼脚本平移（踩过：临时拼的 Python 报了三次错）
@@ -171,12 +168,23 @@
 - 用户看的所有文字一律中文：最后的回复、提问卡片，也包括调工具之间那一两句"现在做什么"的过程说明（"开始写分镜页""草图出好了，挂进页面"）。用户英文不好，这些话是用户跟进度的主要途径。代码、命令、文件名、报错原文照写，不用翻。踩过：一部片子的过程说明 40 段里 32 段是英文（"Opening the motion-effects gallery now."）
 - 先在 Studio 里预览，用户明确要成片时才渲染。转场审查和分镜评审页要用的草稿自己渲染就行，不用等用户开口；样片是用户定稿后要的，也照常渲染。视频成片用 `npm run video -- <id>`（有合成混音时加 `--mix=…`），它渲染完会校验规格、像素格式和响度；有"不合格"就修，"注意"跟用户说明
 - 改一版要看效果时先用草稿档，不整片出成片：`--draft` 是半分辨率、crf 28、x264 ultrafast，`--frames=<起>-<止>` 只渲改了的那一段，两个可以一起用。整片出成片只在用户要成片、或者交付前审查时。踩过：一部 60 秒的着色器片子每遍 24 分钟，改了十几遍、跑了六七个小时。只渲一段或草稿档时不量响度。草稿档省的是画面计算，打包每次固定要几秒，简单的 SVG 片子快不了多少，重的画面（WebGL、大量粒子）才明显
+- 省上下文（用户的额度按"上下文长度 × 调用次数"烧，一部片子做到 400k 上下文、四百多次调用就很费）。质量第一，所以省的是重复和来回，不省审查：
+  - 能用数字查的不出图：重叠、出界、残留、谁最大、帧号对不对，写一小段脚本算出数值再下结论。踩过：傅里叶猫调试时同一张静帧改一点渲一次、打开一次，29 张图里 21 张是这样来的
+  - 要看局部就只看局部：`npm run stills -- <id> <帧> --crop=x,y,w,h` 原尺寸裁一块，比整帧缩小看得清，图也小
+  - 攒一批改动再渲一次看，不改一处看一次。改代码用小块 Edit，不整文件重写；命令输出用 `tail`、`grep` 截到要看的几行
+  - 交付前的审查照"工作方式"做全：每张转场审查图、关键帧图都打开看，不为省额度跳过
+  - 到阶段节点（分镜定稿写好 `brief.md` 和 `timeline.json`、样片通过）提醒用户 `/compact` 或开新对话，新对话先读 `brief.md` 接上
+  - 子代理要从头写一遍缓存（系统提示加本文件几万 token），不当省上下文的手段，只在真有一批独立的活要并行时用
 - 环境出怪问题、换了电脑或升级了工具，先跑 `npm run doctor`
 - 交付前用 `npm run contact -- <id>` 出关键帧预览图（或 `npx remotion still` 渲染单帧），自己看过再交
 - 视频交付前还要跑 `npm run review -- src/videos/<作品> out/<id>.mp4`：
   - 转场：按 timeline.json 的 `transitions` 跑 motioner 的 `transition_review.py`，审查图出在 `out/review/<作品>/`。打开每张图，逐个转场写结论（好 / 弱 / 坏、帧号、原因），坏的修好再交。脚本的 flag 只是提示，结论要看图下
   - 音效：有 `audio/mix.cues.json` 时跑 `sync_check.py`。合成音效的起音点本身就可能偏一点，配音盖住的地方也会匹配偏，所以先测合进成片的那条混音当基线（缺省找 `fullmix.wav`，没有再用 `mix.wav`，别的用 `--mix` 指定），再拿成片逐条和基线比，差不超过半帧算对上。"不合格"要修：偏了，或者混音里有、成片里找不到（成片音轨静音、截短、合错文件）；整体偏一个常数多半是没用 `--mix` 合轨。"注意"是混音里也匹配不上的条目，去听一下。脚本自己出错（没有音轨、技能目录不对）会直接报错退出，不会拿上一次的结果充数
   - 没打开看过的图不说"看过了"
+- 有字、公式、标注叠在画面上的片子，交付前（样片和成片都要）跑 `npm run layout -- <id> [--gl=angle]`：逐帧量出打了名字的元素，报出同一帧里互相压住、跑出安全区的，报帧号和名字，不出图。1080p 两分钟的片子五帧一量约 20 秒
+  - 作品里给字、公式、标注、字幕加 `{...box("名字")}`，根组件放 `<LayoutProbe safe={…} free={["字幕"]} regions={…} />`（`src/shared/layout.tsx`，示例 `src/checks/LayoutCheck.tsx`）。Canvas 画的主体（波、曲线、角色）用 `regions` 按帧报屏幕矩形，曲线切成窄条报，不报一整个包围盒。故意叠着的写进 `allow`
+  - 报出来的每处用 `npm run stills -- <id> <帧> --crop=…` 裁那一块看一眼再下结论，真压住了就修，不是问题就写进 `allow`
+  - 踩过：一部片子交付后补跑才查出三处肉眼审查漏掉的：曲线顶到旁注、曲线穿过公式框（分镜评审时用户提过，成片又犯了）、数字变成三位数后挤进画框
 - 用户在对话之外改过的代码不要覆盖，看到意外改动先确认
 - 视频一律用 Remotion 做，不改用 HyperFrames 或浏览器录屏
 - 没有固定题材。每个视频的内容和结构都在对话里和用户一起定，不自己预设题材模板，比如固定的片头片尾、分镜结构、版式。模板只来自用户点头保存的、已经做成的效果（见"模板和灵感"），而且只在用户点名时套用。motioner 的概念四行是方法，不是题材模板：每片的种子和章节都重新想，也不和上一片重复
@@ -241,18 +249,7 @@
   - Lottie：`src/shared/lottie.tsx`。`loadLottie()` 在 `calculateMetadata` 里读 `public/` 下的 JSON，`<LottieClip>` 播放，`lottieFrames()` 换算时长。别直接用 `@remotion/lottie` 的 `<Lottie>`：它把视频的帧号直接当 Lottie 的帧号，60fps 的动画放进 30fps 的视频会慢一半。带 `wiggle()`、`random()` 表达式的动画每个标签页抖得不一样，要在 AE 里先转成关键帧。示例 `LottieCheck`（同一个手写弹球的 30fps、60fps 两份，并排应该同步）。现成动画的来源和许可证写进 `brief.md`
   - Rough.js：`src/shared/rough.tsx`。一律用 `roughGenerator(seed)` 生成图形：Rough.js 的 seed 缺省为 0，会改用 Math.random；不传 options 时几个图形还共用一个随机数状态，前面多画一个图形后面全变样。`<RoughPaths progress>` 画进 `<svg>`，描边和排线一笔笔画出来；`useBoilSeed(seed, 3)` 做手绘的抖线。示例 `RoughCheck`
   - D3：只当计算库，d3-scale、d3-shape、d3-geo、d3-hierarchy 算出坐标再自己画 SVG；d3-selection、d3-transition 直接改 DOM、靠时钟动，不用。力导向图用 `src/shared/d3.ts` 的 `precomputeForce()` 预先 tick 出每帧位置。示例 `D3Check`
-  - 地图：`src/shared/map.tsx` 的 `<MapLibre>`，`setup` 加图层、设地球投影，`update(map, frame)` 每帧 `jumpTo` 相机、改数据，不用 flyTo/easeTo。航线、距离用 `@turf/turf`。示例 `MapCheck`（地球视角画航线，推进到曼哈顿看 3D 建筑）。要点：
-    - 渲染时要联网（样式、瓦片、字形、unpkg 上的 worker）。1080p 120 帧本机约 1 分 40 秒；缺省 GL 是软件渲染也能画（见下面"GL 后端"），加 `--gl=angle` 用显卡，出问题把并发调小
-    - 矢量样式的图层按缩放级别整层出现（建筑 14 级、POI 15 级），推镜头穿过这些级别时亮度会跳一下，要平滑就在图层的 opacity 上按 zoom 插值
-    - 每帧都动相机时，卫星图、地形纹理在无界面渲染里可能闪。只做 2D 平移缩放就用 remotion-best-practices 技能里 maps 的 fixed map plate；真 3D 地形飞行用 Cesium，要 MapTiler 或 Google 的 key，还没接
-    - 图源署名必须留在画面上（`attribution` 必填）
-    - 图源：缺省用 OpenFreeMap 的 Liberty 样式（不要 key、不限量、允许商用、带 3D 建筑；没有 SLA，可能停服），署名"OpenFreeMap © OpenMapTiles Data from OpenStreetMap"。OSM 的署名规范：地图是画面主体时角落署名，简介或片尾再写一遍并附 openstreetmap.org/copyright。MapTiler、Stadia 的免费档不许商用，换图源先查条款。地形可以接 Mapterhorn 或 AWS Terrain Tiles（terrarium 编码，免 key），还没接、没实测
-    - 发 B 站的中国合规（2026-10-23 整理的资料，不是法律意见）：《地图管理条例》要求公开的地图送审、标审图号，景区图、街区图、地铁线路图这类简单地图除外；"谁公开谁送审"，视频也算。OSM 系图源（OpenFreeMap、MapTiler、Stadia、CARTO 都是）按实际控制画国界，台湾、钓鱼岛等和我国标准地图不一致，也没有审图号，所以：
-      - 画面里有国界、中国全图或有争议地区时，不用 OSM 系图源。用天地图（自然资源部的 WMTS 栅格瓦片，能当 MapLibre 的 raster 源；在 lbs.tianditu.gov.cn 注册开发者申请 key，写进 `.env`），不改边界、不删注记，画面上标来源和审图号（2026-10 是 GS（2026）4921号，用的时候去官网核对）；只要一张静态底图就从标准地图服务（bzdt.ch.mnr.gov.cn）下载，标它的审图号；或者避开这个机位。天地图还没接、没实测，没有 3D 建筑
-      - 只拍城市街区、不带国界的画面可以用 OSM 系图源（算不算街区图例外是推断）。国内 OSM 数据薄，建筑多半没有高度
-      - 在有审图号的地图上叠路线、调色、倾斜算不算"直接使用"，没查到官方说法。拿不准就问省级自然资源主管部门，或者送审（免费，约 20 个工作日）
-      - 从高德、腾讯、百度取的坐标是 GCJ-02 / BD-09，放到 OSM 或天地图上要先转回 WGS-84，不然偏几百米
-    - 开工提问选了地图、内容又涉及中国时，把上面的取舍列成选项问用户
+  - 地图：`src/shared/map.tsx` 的 `<MapLibre>`，`setup` 加图层、设地球投影，`update(map, frame)` 每帧 `jumpTo` 相机、改数据，不用 flyTo/easeTo。航线、距离用 `@turf/turf`。示例 `MapCheck`（地球视角画航线，推进到曼哈顿看 3D 建筑）。联网、图层整层跳亮、署名、发 B 站的中国地图合规都写在 `guides/maps.md`，用地图前先读。开工提问选了地图、内容又涉及中国时，照那里的取舍列成选项问用户
   - Canvas 2D：`src/shared/canvas.tsx`。`<CanvasLayer draw={(ctx, frame, size) => …} />` 每帧清空重画；要一步步积分的粒子、弹簧用 `simulate({ init, step, every })`，`.at(frame)` 从最近的检查点往后算，乱序取帧结果一样。拖尾画成"几帧前 → 现在"的线段，不靠不清屏。示例 `CanvasCheck`、样片 #87
   - 着色器：`src/shared/shader.tsx`。`<ShaderLayer frag={SHADER_NOISE + FRAG} uniforms={…} />`，Shadertoy 写法（只写 `mainImage`）自动补 `iTime`、`iFrame`、`iResolution`；半透明输出要预乘。噪声用 `SHADER_NOISE`（整数哈希），别用 `fract(sin(…))`：显卡和软件渲染能差出整片噪点。示例 `ShaderCheck`、样片 #88
   - Three.js：`src/shared/three.tsx`。`<ThreeLayer shadows>` 包住场景，`<FrameCamera position lookAt fov />` 每帧设相机（`<Canvas camera>` 只读一次），`orbit()` 算绕转机位。动画只由 `useCurrentFrame()` 算，不用 `useFrame()`、`Clock`；命令式改的（InstancedMesh 矩阵、材质参数）必须写在 `useLayoutEffect` 里，写在 `useEffect` 里会画错（实测每个渲染标签页的第一帧方柱全没摆上）。示例 `ThreeCheck`、样片 #89
@@ -264,32 +261,12 @@
 
 ## 生图
 
-- `scripts/image.mjs` 调用「猫肥生图」（`gpt-image-2.5-sunburst`，OpenAI 兼容接口）。地址、模型、Key 在 `.env`（不进 git，格式见 `.env.example`），不要读出或打印 Key。提示词和参考图会发到这个第三方服务
-- 文生图、图生图（`--image`）实测可用，`--background=transparent` 返回真透明的 RGBA PNG。分辨率、质量、张数每次按用途定，不写进配置；实测要 1024x1024 返回的是 1254×1254，用之前用 ffprobe 看实际尺寸
-- 局部重绘（`--mask`）不适合透明素材：带 `--background=transparent` 时接口返回 502，不带时返回的是不透明的 RGB 图。要做差分（眨眼、换嘴型）就用不带蒙版的图生图，提示词写"保持角色、画风、描边、配色和姿势完全不变，只改……"，实测位置几乎不动
-- 每次调用都花用户的钱、要 30–100 秒，偶尔返回 502"模型服务暂时不可用"，等一会儿重试：先用 `--quality=medium` 出一两张定方向，用户确认后再出 high 或多张
-- 同一角色的不同表情、差分都用图生图，把基准图当参考图。动作用 Remotion 做，不逐帧生图
-- 什么交给生图：角色、插画、场景背景、氛围图、封面底图。什么用代码画：要求准确的内容（物理示意、公式、图表、几何、文字），这些生图画不准也改不了细节
-- 一个作品里的多张图用 `brief.md` 里同一段风格提示词，不然每张画风不一样
-- 生成的图旁边有同名 `.json` 记提示词和参数。要留作素材的放进 `public/library/images/` 并在清单里记来源"猫肥生图 gpt-image-2.5-sunburst"
-- 做表情：提示词要求"大轮廓、粗深色描边、少细节、透明背景"（240×240 下细节看不清）；生成后用 `npm run sticker-art -- <图.png>… --out=public/stickers/<套系>/` 处理：裁掉空白、缩到长边 200、透明度二值化、加不透明外描边。同一角色的差分图一起处理，一样大的图共用一个裁剪框，输出完全对齐，可以直接来回切换；不是差分的图分开处理（一起处理时内容范围重合度低于 0.5 会提示）。输出文件名和原图一样，所以生图原图别放在 `--out` 目录里：会盖掉原图时脚本直接报错，原图要留着做图生图。用法示例是 `src/checks/StickerArtCheck.tsx`（眨眼 + 呼吸）
-- 插画颜色多，GIF 体积容易超过 500KB，一般会走 gifski；还超就减少帧数或缩小角色
+- 角色、插画、场景背景、氛围图、封面底图可以生图；公式、图表、几何、文字这类要求准确的用代码画。每次调用花用户的钱，先问用户
+- 用 `npm run image` 之前先读 `guides/image-gen.md`（接口、参数、坑、风格提示词）。Key 在 `.env`，不读出、不打印
 
 ## 演讲稿
 
-工作台也做演讲稿，用两个装在用户目录的技能（`~/.claude/repos/` 下的 git 克隆，停在版本标签上，用目录联接挂进 `~/.claude/skills/`），不进本仓库：
-
-- 选哪个：
-  - 要在 PowerPoint、WPS 里打开和改的 PPTX：`ppt-master`（hugohe3/ppt-master v6.7.3，MIT）。页面先写成 SVG，再导出原生可编辑的 PPTX；它自带浏览器实时预览，用户在页面元素上留意见，助手跑它的 `check_annotations.py` 处理
-  - 在浏览器里放、带动画的单文件 HTML 演讲稿：`frontend-slides`（zarazhangrui/frontend-slides v2.1.0，MIT），零依赖。导出 PDF 会丢动画
-  - 视频照样用 Remotion 做，这两个不出视频画面
-- 用户要演讲稿时，先问要 PPTX 还是网页，再调对应技能，照技能自己的流程走。提问照样用选项卡片、用中文，不加"自己补充"选项
-- 作品放 `decks/<名字>/`，只进私有仓库（`sync-public` 不发布）。ppt-master 建项目时加 `--dir decks`，不然会建在当前目录的 `projects/` 下；它建的目录名带画幅和日期
-- ppt-master 的 Python：技能里写的 `python3` 一律换成 `~/.claude/repos/ppt-master/.venv/Scripts/python.exe`。这是 uv 建的独立环境，实际装的版本记在 `~/.claude/repos/ppt-master/requirements.lock.txt`，不装进本仓库的 `.venv`
-- ppt-master 的生图（`image_gen.py`）先不用：它读当前目录的 `.env`，也就是本仓库的生图配置，两边的后端设置对不上。要配图用本仓库的 `npm run image`，照"生图"那节先问用户
-- frontend-slides 的 `deploy.sh` 会把演讲稿发布到 Vercel 公网，用户明确要才跑；`export-pdf.sh` 在临时目录装 Playwright 和 Chromium，不碰本仓库
-- ppt-master 的环境里有 PyMuPDF（AGPL-3.0），别把它或它的代码带进本仓库
-- 更新：`git -C ~/.claude/repos/<技能> fetch --tags` 后 checkout 新的版本标签；ppt-master 再跑 `uv pip install --python .venv/Scripts/python.exe -r skills/ppt-master/requirements.txt`，重新导出 `requirements.lock.txt`。不用它自带的 `update_repo.py`：克隆停在标签上，不在分支上
+用户要演讲稿（PPTX 用 `ppt-master`，网页用 `frontend-slides`）时先读 `guides/decks.md`：先问要 PPTX 还是网页，再照那里调技能。作品放 `decks/<名字>/`，只进私有仓库
 
 ## 封面
 
@@ -305,7 +282,9 @@
 - `npm run video -- <id> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]`：渲染视频成片（yuv420p、bt709）并校验分辨率、帧率、帧数、像素格式、音轨时长、响度（目标 -14±3 LUFS）和 true peak（≤ -1 dBTP）；`--mix` 时画面静音渲染、FFmpeg 合入混音；`--gl`、`--concurrency` 给 WebGL 画面用（见"画面手法"）；`npm run video -- <文件.mp4>` 只校验
 - `npm run review -- src/videos/<作品> <成片.mp4> [--only=transitions|sync] [--mix=<混音.wav>] [--frames=<起>-<止>]`：motioner 的转场审查和音效对帧，结果在 `out/review/<作品>/`。审样片加 `--frames`，和渲染样片时写的一样，只审整个落在这段里的转场，结果在 `out/review/<作品>-f<起>-<止>/`。技能目录找不到时设 `MOTIONER_DIR`
 - `npm run mix -- src/videos/<作品>`：timeline.json → 总谱 → 合成 → 按帧混音 → 配音和母带，出 `public/videos/<作品>/audio/fullmix.wav`，约 1–2 分钟。只改了 `voiceMix` 时单独跑 `.venv/Scripts/python.exe scripts/voice_mix.py src/videos/<作品> [--bed-gain=<dB>] [--voice-gain=<dB>]`，增益缺省读 timeline.json 的 `voiceMix`
-- `npm run stills -- <id> <帧号…> [--scale=0.5] [--out=out/stills/<id>] [--gl=angle]`：一次打包渲染多张单帧，比逐张 `npx remotion still` 快。`--gl` 和成片用同一个（以前写死了 angle，2026-10-24 改成缺省和 `npm run video` 一样）
+- `npm run stills -- <id> <帧号…> [--scale=0.5] [--crop=x,y,w,h] [--out=out/stills/<id>] [--gl=angle]`：一次打包渲染多张单帧，比逐张 `npx remotion still` 快。`--crop` 按原尺寸渲染再裁出一块（坐标是原尺寸的像素），看局部细节用它，图小、细节不糊。`--gl` 和成片用同一个（以前写死了 angle，2026-10-24 改成缺省和 `npm run video` 一样）
+- `npm run layout -- <id> [--every=5] [--frames=<起>-<止>] [--min=6] [--gl=angle]`：版面检查，报同一帧里互相压住、跑出安全区的字和公式，结果在 `out/layout/<id>.json`，见"工作方式"
+- `npm run place-voice -- src/videos/<作品>`：按 timeline.json 的 `voiceAt` 反推配音停顿，见"做视频先调技能"的配音片节拍
 - `npm run sync-public [-- --push] [--ref=main] [--message=<说明>]`：把工作台同步到公开仓库，缺省只预演，见"仓库"
 - `npm run board -- <作品目录> [--list] [--resolve=<编号,…> --reply=<回复>] [--no-open]`：分镜评审页，见"开工前先问清楚"；编号写 `s3-2`、`整体-1`
 - `npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5] [--gl=angle]`：把 `<ShotSketches>` 注册的每个镜头渲成静帧，出在 `out/board/<作品>/`，对照 board.json 列出没挂上的图
@@ -317,11 +296,4 @@
 - `npm run bgm -- public/videos/<作品>/bgm [--seconds=32] [--bpm=60] [--style=bed|sparse] [--loudness=-16]`：合成 BGM，bed 可循环，sparse 适合无配音短片
 - `npm run paper -- <输出.png> [--width=1080] [--height=1920] [--color=F6F3EC] [--seed=7]`：生成细颗粒纸纹底图
 - `npm run contact -- <id> [--count=8] [--frames=0,90,300] [--cols=4] [--bg=EDEDED]`：关键帧预览图，出在 `out/contact/<id>.png`，每张标帧号和时间
-- `npm run sticker-art -- <图.png>… --out=<目录> [--size=200] [--outline=3] [--color=auto]`：生成图转表情素材
-- `npm run image-box -- <图.png|webp>…`：量图片的透明留白，打印内容范围和 `box` 参数（配合模板 `squish` 用）
-- `npm run sticker -- <id> [<id>…]`：导出并校验表情，id 可用 `*` 通配，比如 `"Cat*"`；`--all` 导出所有 240×240 的 Composition
-- `npm run sticker -- <文件.gif>`：只校验现成的 GIF，比如剪映或 gifski 图形版导出的
-- `npm run sticker -- <id> --encoder=remotion` 或 `--encoder=gifski`：只用指定的编码方式，用来对比。要用等号连着写，不认识的选项直接报错
-- `npx remotion render <id> out/<名字>.gif --codec=gif --image-format=png`：Remotion 自带的 GIF 导出，保留透明
-- `npx remotion render <id> out/frames/<名字> --sequence --image-format=png`：导出透明 PNG 序列
-- `tools/gifski/gifski.exe --fps <帧率> --quality 90 -o out/<名字>.gif out/frames/<名字>/element-*.png`：用 gifski 编码 PNG 序列，`--fps` 要和 Composition 的帧率一致
+- 表情的命令（`sticker`、`sticker-art`、`image-box`、gifski 编码）见 `guides/stickers.md`

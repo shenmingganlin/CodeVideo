@@ -1,0 +1,15 @@
+# 演讲稿
+
+工作台也做演讲稿，用两个装在用户目录的技能（`~/.claude/repos/` 下的 git 克隆，停在版本标签上，用目录联接挂进 `~/.claude/skills/`），不进本仓库：
+
+- 选哪个：
+  - 要在 PowerPoint、WPS 里打开和改的 PPTX：`ppt-master`（hugohe3/ppt-master v6.7.3，MIT）。页面先写成 SVG，再导出原生可编辑的 PPTX；它自带浏览器实时预览，用户在页面元素上留意见，助手跑它的 `check_annotations.py` 处理
+  - 在浏览器里放、带动画的单文件 HTML 演讲稿：`frontend-slides`（zarazhangrui/frontend-slides v2.1.0，MIT），零依赖。导出 PDF 会丢动画
+  - 视频照样用 Remotion 做，这两个不出视频画面
+- 用户要演讲稿时，先问要 PPTX 还是网页，再调对应技能，照技能自己的流程走。提问照样用选项卡片、用中文，不加"自己补充"选项
+- 作品放 `decks/<名字>/`，只进私有仓库（`sync-public` 不发布）。ppt-master 建项目时加 `--dir decks`，不然会建在当前目录的 `projects/` 下；它建的目录名带画幅和日期
+- ppt-master 的 Python：技能里写的 `python3` 一律换成 `~/.claude/repos/ppt-master/.venv/Scripts/python.exe`。这是 uv 建的独立环境，实际装的版本记在 `~/.claude/repos/ppt-master/requirements.lock.txt`，不装进本仓库的 `.venv`
+- ppt-master 的生图（`image_gen.py`）先不用：它读当前目录的 `.env`，也就是本仓库的生图配置，两边的后端设置对不上。要配图用本仓库的 `npm run image`，照 `guides/image-gen.md` 先问用户
+- frontend-slides 的 `deploy.sh` 会把演讲稿发布到 Vercel 公网，用户明确要才跑；`export-pdf.sh` 在临时目录装 Playwright 和 Chromium，不碰本仓库
+- ppt-master 的环境里有 PyMuPDF（AGPL-3.0），别把它或它的代码带进本仓库
+- 更新：`git -C ~/.claude/repos/<技能> fetch --tags` 后 checkout 新的版本标签；ppt-master 再跑 `uv pip install --python .venv/Scripts/python.exe -r skills/ppt-master/requirements.txt`，重新导出 `requirements.lock.txt`。不用它自带的 `update_repo.py`：克隆停在标签上，不在分支上

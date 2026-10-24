@@ -1,6 +1,7 @@
 import type { Caption } from "@remotion/captions";
 import { Audio } from "@remotion/media";
 import { Sequence, staticFile } from "remotion";
+import { layoutProbing } from "./layout";
 
 // 读取 npm run voice 生成的配音清单，把每句排到时间轴上。
 // 只管时间，不管画面：字幕怎么画、画面怎么跟着配音走，由每个作品自己写
@@ -108,6 +109,8 @@ export const VoiceTrack: React.FC<{ lines: PlacedLine[]; volume?: number }> = ({
   lines,
   volume = 1,
 }) => {
+  // npm run layout 只量版面、隔几帧取一帧，渲染器混这样的音频会算错写入位置而崩掉，干脆不放
+  if (layoutProbing()) return null;
   return (
     <>
       {lines.map((line) => (

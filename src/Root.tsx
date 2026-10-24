@@ -4,6 +4,7 @@ import { D3Check } from "./checks/D3Check";
 import { FormulaCheck } from "./checks/formula/FormulaCheck";
 import { GradientCheck } from "./checks/GradientCheck";
 import { LandscapeCheck } from "./checks/LandscapeCheck";
+import { LayoutCheck } from "./checks/LayoutCheck";
 import { LottieCheck } from "./checks/LottieCheck";
 import { MapCheck } from "./checks/MapCheck";
 import { RoughCheck } from "./checks/RoughCheck";
@@ -66,6 +67,7 @@ export const RemotionRoot: React.FC = () => {
         <CanvasCheck />
         <ShaderCheck />
         <ThreeCheck />
+        <LayoutCheck />
       </Folder>
       <Gallery />
       {groups.map(
