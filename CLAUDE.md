@@ -108,7 +108,7 @@
      - 不写 `timeline.json`，不逐帧写整部片，不改 `src/shared/` 和别的作品。草稿 Composition 建在作品目录里，定稿后照定下来的改成正式的
      - 第一轮的提问是"请在页面上逐个镜头留言，看完回来说'看留言'"，不问"能定稿吗"：用户还没留过一条言
      - 踩过的坑（两次）：第一次问完风格就写了整部片（时间线、逐帧画面、三个图层），半小时后才开分镜页。第二次规则已经写了"只做草图"，还是把 56 秒整片写成一个 586 行的"草稿 Composition"，又花 20 分钟逐帧修第 1255–1263 帧的接缝、把章节挪到整拍上，问完 32 分钟才开页面。草稿只要画得出来就会一路修下去，所以先开页面、草图按镜头分开画、不修
-  7. 样片：挑全片最难或最有代表性的 5–10 秒（不一定是开头），按成片的画质和声音做，改到用户满意。只渲染这一段：`npm run video -- <id> --frames=<起>-<止> --mix=public/videos/<作品>/audio/fullmix.wav`，混音会自动从起帧对应的时间截同一段合进去，出 `out/<id>-f<起>-<止>.mp4`
+  7. 样片：挑全片最难或最有代表性的 5–10 秒（不一定是开头），按成片的画质和声音做，改到用户满意。只渲染这一段：`npm run video -- <id> --frames=<起>-<止> --mix=public/videos/<作品>/audio/fullmix.wav`，混音会自动从起帧对应的时间截同一段合进去，出 `out/<id>-f<起>-<止>.mp4`。交给用户前审一遍：`npm run review -- src/videos/<作品> out/<id>-f<起>-<止>.mp4 --frames=<起>-<止>`，转场计划和音效清单自动平移，基线混音截同一段，打印的帧号是全片的，结果在 `out/review/<作品>-f<起>-<止>/`。别自己拼脚本平移（踩过：临时拼的 Python 报了三次错）
   8. 成片：照"工作方式"渲染、转场审查、音效对帧后交付
 - 表情走精简版：大类（反应、打招呼、节日……）→ 梗或台词 → 角色（用户给的图、代码画，还是生图）、动作、帧率和帧数、透明还是带底色、单个还是一套 → 风格和画法（代码画的话按 `techniques.md` 挑平涂类的手法：SVG、Rough.js、Lottie、Zdog）→ 分镜评审页（每个表情一个镜头，配静帧或草稿 GIF）→ 先做一个表情当样片，满意了再做全套
 
@@ -128,7 +128,9 @@
   2. 照留言改 `board.json`、重做草图，`round` 加 1。意思不清的留言先在对话里问，不要猜
   3. 每条改完跑 `--resolve=<编号,…> --reply="<改了什么>"`，回复显示在页面上那条留言下面。没照做的也要回复说明为什么
   4. 在对话里一两句话说这轮改了什么，请用户再看
-- 定稿：用户在页面上点"这一轮定稿"，`--list` 会显示"已定稿"。之后 `round` 再变就算没定稿，要用户重新点。定稿后把定下来的写进 `brief.md`，章节、事件帧、转场写进 `timeline.json`，再做样片
+- 留言编号是"镜头 id-第几条"：`s3-2` 是 s3 镜头的第 2 条，`整体-1` 是整体的第 1 条。页面上、`--list`、`--resolve=s3-2,整体-1`、对话里都用这个编号，问用户某条留言的意思时也写编号（"s3-2 说的'最后一种'是指……"）。编号一经给出不变，撤回的也占号；老的纯数字 id 也认
+- 定稿：用户在页面上点"这一轮定稿"，确认区里点"确定定稿"，`--list` 会显示"已定稿"，终端里也记一行"第 N 轮定稿"。之后 `round` 再变就算没定稿，要用户重新点。定稿后把定下来的写进 `brief.md`，章节、事件帧、转场写进 `timeline.json`，再做样片
+  - 用户说"定稿了"以后先跑 `--list`。显示的不是"已定稿"就告诉用户没记上、请再点一次，不要照"用户说了"往下做。踩过：页面上点了定稿却没记上（旧版用浏览器的 prompt 问备注，点"取消"就整个作废），助手查到 approvals 是空的，没告诉用户，自己当定稿往下做了
 - `comments.json` 只让页面和 `--resolve` 写，不要手改。`board/` 跟着作品提交进私有仓库，留着方案是怎么改过来的；`out/` 下的草图不进 git
 
 ### 动效样片库
@@ -166,6 +168,7 @@
 
 ## 工作方式
 
+- 用户看的所有文字一律中文：最后的回复、提问卡片，也包括调工具之间那一两句"现在做什么"的过程说明（"开始写分镜页""草图出好了，挂进页面"）。用户英文不好，这些话是用户跟进度的主要途径。代码、命令、文件名、报错原文照写，不用翻。踩过：一部片子的过程说明 40 段里 32 段是英文（"Opening the motion-effects gallery now."）
 - 先在 Studio 里预览，用户明确要成片时才渲染。转场审查和分镜评审页要用的草稿自己渲染就行，不用等用户开口；样片是用户定稿后要的，也照常渲染。视频成片用 `npm run video -- <id>`（有合成混音时加 `--mix=…`），它渲染完会校验规格、像素格式和响度；有"不合格"就修，"注意"跟用户说明
 - 改一版要看效果时先用草稿档，不整片出成片：`--draft` 是半分辨率、crf 28、x264 ultrafast，`--frames=<起>-<止>` 只渲改了的那一段，两个可以一起用。整片出成片只在用户要成片、或者交付前审查时。踩过：一部 60 秒的着色器片子每遍 24 分钟，改了十几遍、跑了六七个小时。只渲一段或草稿档时不量响度。草稿档省的是画面计算，打包每次固定要几秒，简单的 SVG 片子快不了多少，重的画面（WebGL、大量粒子）才明显
 - 环境出怪问题、换了电脑或升级了工具，先跑 `npm run doctor`
@@ -300,11 +303,11 @@
 - `npx remotion still <id> out/<名字>.png --frame=<帧号>`：渲染单帧
 - `npm run video -- <id> [--draft] [--frames=<起>-<止>]`：草稿档（半分辨率、快编码）或只渲一段，混音跟着截同一段，看效果、做样片用，见"工作方式"
 - `npm run video -- <id> [--out=out/<id>.mp4] [--crf=18] [--mix=<混音.wav>] [--gl=angle] [--concurrency=1]`：渲染视频成片（yuv420p、bt709）并校验分辨率、帧率、帧数、像素格式、音轨时长、响度（目标 -14±3 LUFS）和 true peak（≤ -1 dBTP）；`--mix` 时画面静音渲染、FFmpeg 合入混音；`--gl`、`--concurrency` 给 WebGL 画面用（见"画面手法"）；`npm run video -- <文件.mp4>` 只校验
-- `npm run review -- src/videos/<作品> <成片.mp4> [--only=transitions|sync] [--mix=<混音.wav>]`：motioner 的转场审查和音效对帧，结果在 `out/review/<作品>/`。技能目录找不到时设 `MOTIONER_DIR`
+- `npm run review -- src/videos/<作品> <成片.mp4> [--only=transitions|sync] [--mix=<混音.wav>] [--frames=<起>-<止>]`：motioner 的转场审查和音效对帧，结果在 `out/review/<作品>/`。审样片加 `--frames`，和渲染样片时写的一样，只审整个落在这段里的转场，结果在 `out/review/<作品>-f<起>-<止>/`。技能目录找不到时设 `MOTIONER_DIR`
 - `npm run mix -- src/videos/<作品>`：timeline.json → 总谱 → 合成 → 按帧混音 → 配音和母带，出 `public/videos/<作品>/audio/fullmix.wav`，约 1–2 分钟。只改了 `voiceMix` 时单独跑 `.venv/Scripts/python.exe scripts/voice_mix.py src/videos/<作品> [--bed-gain=<dB>] [--voice-gain=<dB>]`，增益缺省读 timeline.json 的 `voiceMix`
 - `npm run stills -- <id> <帧号…> [--scale=0.5] [--out=out/stills/<id>] [--gl=angle]`：一次打包渲染多张单帧，比逐张 `npx remotion still` 快。`--gl` 和成片用同一个（以前写死了 angle，2026-10-24 改成缺省和 `npm run video` 一样）
 - `npm run sync-public [-- --push] [--ref=main] [--message=<说明>]`：把工作台同步到公开仓库，缺省只预演，见"仓库"
-- `npm run board -- <作品目录> [--list] [--resolve=<编号,…> --reply=<回复>] [--no-open]`：分镜评审页，见"开工前先问清楚"
+- `npm run board -- <作品目录> [--list] [--resolve=<编号,…> --reply=<回复>] [--no-open]`：分镜评审页，见"开工前先问清楚"；编号写 `s3-2`、`整体-1`
 - `npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5] [--gl=angle]`：把 `<ShotSketches>` 注册的每个镜头渲成静帧，出在 `out/board/<作品>/`，对照 board.json 列出没挂上的图
 - `npm run gallery [-- <名字…>] [--force] [--no-open] [--list]`：渲染动效样片库并打开网页，见"动效样片库"；`--list` 只打印编号、名字、分组、文件名和描述
 - `npm run doctor`：环境预检（Node、FFmpeg、gifski、uv 和 Python 依赖、TeX、字体、motioner 技能目录、.env 是否填好）

@@ -3,8 +3,10 @@
 // 用法：
 //   npm run board -- <作品目录>              起本地服务器（只听 127.0.0.1，从 3200 起找空端口）并打开浏览器
 //   npm run board -- <作品目录> --list       列出待处理的留言和定稿状态，不用开着服务器
-//   npm run board -- <作品目录> --resolve=3,4 --reply="改成从左边涌进来了"
+//   npm run board -- <作品目录> --resolve=s3-2,整体-1 --reply="改成从左边涌进来了"
 //                                            把留言标成已处理，回复显示在页面上那条留言下面
+//   留言编号是"镜头 id-第几条"（s3-2 = s3 镜头的第 2 条，整体-1 = 整体的第 1 条），页面、--list、对话里都用它；
+//   老的纯数字 id 也认
 //   加 --no-open 不开浏览器
 //
 // 文件都在 <作品目录>/board/，跟着作品提交进私有仓库，留着方案怎么改过来的：
@@ -102,6 +104,13 @@ const updateComments = (change) => {
   return result;
 };
 const now = () => new Date().toISOString();
+// 留言编号：镜头 id 加这个镜头下的第几条，比如 s3-2；整体的叫"整体-1"。撤回的也占号，号一旦给出就不变。
+// 页面上、--list、--resolve、对话里都用它，一眼看出是哪个镜头的。底层的数字 id 照旧存着，老的留言也能算出编号
+const refName = (target) => (target === OVERALL ? "整体" : target);
+const withRefs = (comments) => {
+  const seen = {};
+  return comments.map((c) => ({ ...c, ref: `${refName(c.target)}-${(seen[c.target] = (seen[c.target] ?? 0) + 1)}` }));
+};
 const shotLabel = (board, target) => {
   if (target === OVERALL) return "整体";
   const shot = board?.shots.find((s) => s.id === target);
@@ -110,22 +119,28 @@ const shotLabel = (board, target) => {
 
 // 命令行：--resolve
 if (option("resolve") !== undefined) {
-  const ids = option("resolve").split(",").map((s) => Number(s.trim()));
+  const tokens = option("resolve").split(",").map((s) => s.trim()).filter(Boolean);
   const reply = option("reply");
   if (!reply) fail("--resolve 要带 --reply=<改了什么>，回复会显示在页面上");
-  if (ids.some((id) => !Number.isInteger(id))) fail("--resolve 写留言编号，逗号隔开，比如 --resolve=3,4");
+  if (!tokens.length) fail("--resolve 写留言编号，逗号隔开，比如 --resolve=s3-2,整体-1");
   const { board } = loadBoard();
+  const done = [];
   updateComments((data) => {
-    for (const id of ids) {
-      const comment = data.comments.find((c) => c.id === id);
-      if (!comment) fail(`没有编号 ${id} 的留言`);
-      if (comment.status !== "open") fail(`留言 ${id} 已经是${comment.status === "resolved" ? "已处理" : "撤回"}的了`);
-    }
-    for (const id of ids) {
-      Object.assign(data.comments.find((c) => c.id === id), { status: "resolved", reply, resolvedAt: now(), resolvedRound: board?.round ?? null });
+    const refs = withRefs(data.comments);
+    // 认编号（s3-2、整体-1，不分大小写），也认老的纯数字 id
+    const find = (t) => refs.find((c) => (/^\d+$/.test(t) ? c.id === Number(t) : c.ref.toLowerCase() === t.toLowerCase()));
+    const picked = tokens.map((t) => {
+      const c = find(t);
+      if (!c) fail(`没有 ${t} 这条留言。待处理的：${refs.filter((x) => x.status === "open").map((x) => x.ref).join("、") || "没有"}`);
+      if (c.status !== "open") fail(`${c.ref} 已经是${c.status === "resolved" ? "已处理" : "撤回"}的了`);
+      return c;
+    });
+    for (const c of picked) {
+      Object.assign(data.comments.find((x) => x.id === c.id), { status: "resolved", reply, resolvedAt: now(), resolvedRound: board?.round ?? null });
+      done.push(c.ref);
     }
   });
-  console.log(`已处理 ${ids.join("、")}：${reply}`);
+  console.log(`已处理 ${done.join("、")}：${reply}`);
 }
 
 // 命令行：--list（--resolve 之后也列一遍）
@@ -133,10 +148,10 @@ if (flag("list") || option("resolve") !== undefined) {
   const { board, error } = loadBoard();
   if (error) console.log(`注意：${error}`);
   const data = readComments();
-  const open = data.comments.filter((c) => c.status === "open");
+  const open = withRefs(data.comments).filter((c) => c.status === "open");
   console.log(`\n${board?.title ?? rel(work)}，第 ${board?.round ?? "?"} 轮`);
   console.log(open.length ? `待处理留言 ${open.length} 条：` : "没有待处理的留言");
-  for (const c of open) console.log(`  [${c.id}] ${shotLabel(board, c.target)}（第 ${c.round} 轮）：${c.text}`);
+  for (const c of open) console.log(`  [${c.ref}] ${shotLabel(board, c.target)}（第 ${c.round} 轮）：${c.text}`);
   const last = data.approvals.at(-1);
   if (!last) console.log("还没定稿");
   else if (board && last.round === board.round) console.log(`已定稿：第 ${last.round} 轮，${last.at}${last.note ? `，用户说：${last.note}` : ""}`);
@@ -229,7 +244,8 @@ const handle = async (req, res) => {
       if (url.pathname === "/api/version") return send(res, 200, { board: boardVersion(), comments: mtime(commentsFile) });
       if (url.pathname === "/api/state") {
         const { board, warnings, error } = loadBoard();
-        return send(res, 200, { work: rel(work), board, warnings, error, ...readComments(), board_version: boardVersion(), comments_version: mtime(commentsFile) });
+        const data = readComments();
+        return send(res, 200, { work: rel(work), board, warnings, error, ...data, comments: withRefs(data.comments), board_version: boardVersion(), comments_version: mtime(commentsFile) });
       }
       if (url.pathname === "/file") {
         const file = resolveMedia(url.searchParams.get("path") ?? "");
@@ -249,8 +265,10 @@ const handle = async (req, res) => {
         const comment = updateComments((data) => {
           const c = { id: data.nextId++, target, round: board?.round ?? null, text, status: "open", at: now() };
           data.comments.push(c);
-          return c;
+          return withRefs(data.comments).at(-1);
         });
+        // 终端里也记一笔，助手能对着看页面到底发过来了什么
+        console.log(`[${new Date().toLocaleTimeString("zh-CN")}] 留言 ${comment.ref}：${text.replace(/\s+/g, " ").slice(0, 60)}`);
         return send(res, 200, comment);
       }
       if (url.pathname === "/api/withdraw") {
@@ -270,6 +288,7 @@ const handle = async (req, res) => {
           data.approvals.push(a);
           return a;
         });
+        console.log(`[${new Date().toLocaleTimeString("zh-CN")}] 第 ${approval.round} 轮定稿${note ? `：${note}` : ""}`);
         return send(res, 200, approval);
       }
     }

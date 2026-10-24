@@ -65,8 +65,14 @@ const mediaItem = (item) => {
   return h("figure", {}, el, has(item.caption) && h("figcaption", {}, item.caption));
 };
 
+// 输入框里先写好这条留言会拿到的编号，发之前就知道它叫什么
+const refName = (target) => (target === OVERALL ? "整体" : target);
+const nextRef = (target) => `${refName(target)}-${(state?.comments ?? []).filter((c) => c.target === target).length + 1}`;
+const placeholderFor = (target) =>
+  `${target === OVERALL ? "对整体的意见" : "对这个镜头的意见"}，发出去是 ${nextRef(target)}……（Ctrl+Enter 发送）`;
+
 const commentsBlock = (target) => {
-  const area = h("textarea", { "data-target": target, placeholder: target === OVERALL ? "对整体的意见……（Ctrl+Enter 发送）" : "对这个镜头的意见……（Ctrl+Enter 发送）" });
+  const area = h("textarea", { "data-target": target, placeholder: placeholderFor(target) });
   area.value = drafts[target] ?? "";
   const button = h("button", { class: "primary", type: "button" }, "留言");
   area.addEventListener("input", () => {
@@ -111,14 +117,16 @@ const shotCard = (shot) => {
 };
 // 留言
 const time = (iso) => new Date(iso).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+// 留言编号由服务器算好（c.ref，比如 s3-2、整体-1）。点它地址栏变成 #c-s3-2，这个链接打开就跳到这条留言
 const commentEl = (c, orphan) =>
   h(
     "div",
-    { class: `comment ${c.status}${orphan ? " orphan" : ""}` },
+    { class: `comment ${c.status}${orphan ? " orphan" : ""}`, id: `c-${c.ref}` },
     h(
       "div",
       { class: "meta" },
-      ...[`#${c.id}`, orphan && `镜头 ${c.target} 已删`, c.round && `第 ${c.round} 轮`, time(c.at), c.status === "resolved" ? "已处理" : "待处理"].filter(Boolean).map((s) => h("span", {}, s)),
+      h("a", { class: "ref", href: `#c-${c.ref}`, title: "这条留言的编号，在对话里说它就知道是哪条" }, c.ref),
+      ...[orphan && `镜头 ${c.target} 已删`, c.round && `第 ${c.round} 轮`, time(c.at), c.status === "resolved" ? "已处理" : "待处理"].filter(Boolean).map((s) => h("span", {}, s)),
       c.status === "open" && h("button", { type: "button", onclick: () => withdraw(c) }, "撤回"),
     ),
     h("div", { class: "text" }, c.text),
@@ -149,9 +157,31 @@ const renderComments = () => {
       list.append(extra);
     }
   }
+  for (const area of document.querySelectorAll("textarea[data-target]")) area.placeholder = placeholderFor(area.dataset.target);
   renderStrip();
   renderBar();
+  focusHash();
 };
+
+// 地址带 #c-s3-2 时跳到那条留言：收起的"已处理"先展开，滚过去闪一下。轮询重画后不再重复滚
+let focusedHash = null;
+const focusHash = () => {
+  const hash = decodeURIComponent(location.hash);
+  if (!hash.startsWith("#c-") || hash === focusedHash) return;
+  const el = document.getElementById(hash.slice(1));
+  if (!el) return;
+  focusedHash = hash;
+  const details = el.closest("details");
+  if (details && !details.open) details.open = true;
+  el.scrollIntoView({ block: "center" });
+  el.classList.remove("flash");
+  void el.offsetWidth;
+  el.classList.add("flash");
+};
+window.addEventListener("hashchange", () => {
+  focusedHash = null;
+  focusHash();
+});
 
 const openCount = (target) => state.comments.filter((c) => c.status === "open" && (target === undefined || c.target === target)).length;
 
@@ -218,12 +248,12 @@ const submit = async (target, area, button) => {
   if (!value) return;
   button.disabled = true;
   try {
-    await post("/api/comment", { target, text: value });
+    const saved = await post("/api/comment", { target, text: value });
     area.value = "";
     delete drafts[target];
     saveDrafts();
     await refresh();
-    toast('留言存好了。都留完了回对话里说一声"看留言"');
+    toast(`留言 ${saved.ref} 存好了。都留完了回对话里说一声"看留言"`);
   } catch (error) {
     toast(`没存上：${error.message}`);
   } finally {
@@ -232,7 +262,7 @@ const submit = async (target, area, button) => {
 };
 
 const withdraw = async (c) => {
-  if (!confirm(`撤回 #${c.id} 这条留言？`)) return;
+  if (!confirm(`撤回 ${c.ref} 这条留言？`)) return;
   try {
     await post("/api/withdraw", { id: c.id });
     await refresh();
@@ -241,17 +271,37 @@ const withdraw = async (c) => {
   }
 };
 
-$("#approve").addEventListener("click", async () => {
-  const n = openCount();
-  if (n > 0 && !confirm(`还有 ${n} 条留言没处理，确定按现在这一版定稿？`)) return;
-  const note = prompt("定稿。想补一句话可以写在这里（可以不写）：", "");
-  if (note === null) return;
+// 定稿：点按钮在页面上展开一块确认区，不用浏览器的 confirm/prompt。
+// 以前用 prompt 问备注，点"取消"（以为是"不写备注"）就整个没定上，页面上又什么都不说（踩过：用户点了定稿，approvals 是空的）
+const openApprove = () => {
+  const panel = $("#approve-panel");
+  const open = state.comments.filter((c) => c.status === "open");
+  $("#approve-round").textContent = `第 ${state.board.round} 轮`;
+  const warn = $("#approve-warn");
+  warn.hidden = open.length === 0;
+  warn.textContent = `还有 ${open.length} 条留言没处理（${open.map((c) => c.ref).join("、")}），定稿后它们就不改了。`;
+  $("#approve-error").hidden = true;
+  panel.hidden = false;
+  $("#approve-note").focus();
+};
+$("#approve").addEventListener("click", openApprove);
+$("#approve-cancel").addEventListener("click", () => ($("#approve-panel").hidden = true));
+$("#approve-ok").addEventListener("click", async () => {
+  const ok = $("#approve-ok");
+  ok.disabled = true;
   try {
-    await post("/api/approve", { note });
+    const a = await post("/api/approve", { note: $("#approve-note").value });
+    $("#approve-note").value = "";
+    $("#approve-panel").hidden = true;
     await refresh();
-    toast('定稿了。回对话里说一声"定稿了"');
+    toast(`第 ${a.round} 轮定稿了。回对话里说一声"定稿了"`);
   } catch (error) {
-    toast(`没定上：${error.message}`);
+    // 出错就留在确认区里写明白，不只闪一下
+    const el = $("#approve-error");
+    el.textContent = `没定上：${error.message}`;
+    el.hidden = false;
+  } finally {
+    ok.disabled = false;
   }
 });
 
@@ -266,7 +316,7 @@ const refresh = async () => {
   versions = { board: next.board_version, comments: next.comments_version };
   if (boardChanged) {
     renderAll();
-    if (first && location.hash) document.querySelector(location.hash)?.scrollIntoView();
+    if (first && location.hash && !location.hash.startsWith("#c-")) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
     else if (!first && next.board) toast(`分镜更新了：第 ${next.board.round} 轮`);
   } else if (commentsChanged) renderComments();
 };

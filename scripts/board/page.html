@@ -16,6 +16,16 @@
         <button id="approve" type="button">这一轮定稿</button>
       </div>
     </header>
+    <section id="approve-panel" hidden>
+      <div><b>定稿 <span id="approve-round"></span></b>：照现在这一版做样片和成片。</div>
+      <div id="approve-warn" hidden></div>
+      <textarea id="approve-note" placeholder="想补一句话可以写在这里，不写也行"></textarea>
+      <div id="approve-error" hidden></div>
+      <div class="approve-actions">
+        <button id="approve-cancel" type="button">先不定</button>
+        <button id="approve-ok" class="primary" type="button">确定定稿</button>
+      </div>
+    </section>
     <div id="banner" hidden></div>
     <nav id="strip"></nav>
     <main id="main"><p class="hint">加载中…</p></main>
