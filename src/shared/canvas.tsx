@@ -57,9 +57,25 @@ export const CanvasLayer: React.FC<{
 //
 //   const flow = simulate({ init: () => new Float32Array(N * 2), step: (s, f) => { …; return s; }, every: 30 });
 //   flow.at(frame)   第 frame 帧的状态（返回的是拷贝，随便改）
-export const simulate = <S extends { slice(): S }>(opts: { init: () => S; step: (state: S, frame: number) => S; every?: number }) => {
+//
+// 另外记住最近取过的 recent 帧（缺省 8）：Studio 顺着播放时下一帧只要从上一帧走一步，
+// 不用每帧从检查点重算十几步（#87 万条细丝从每帧 27ms 降到 1ms）。step 是纯函数，从哪个更近的帧走过来结果都一样。
+// 每帧要取"现在"和"几帧前"两个状态的（拖尾），recent 要大于拖尾的帧数
+export const simulate = <S extends { slice(): S }>(opts: {
+  init: () => S;
+  step: (state: S, frame: number) => S;
+  every?: number;
+  recent?: number;
+}) => {
   const every = opts.every ?? 30;
+  const recentMax = opts.recent ?? 8;
   const checkpoints: S[] = [opts.init()];
+  const recent = new Map<number, S>(); // 帧号 → 状态，按取用先后排，最早的先丢
+  const remember = (frame: number, s: S) => {
+    recent.delete(frame);
+    recent.set(frame, s);
+    if (recent.size > recentMax) recent.delete(recent.keys().next().value as number);
+  };
   const at = (frame: number): S => {
     if (!Number.isInteger(frame) || frame < 0) throw new Error(`simulate 的帧号要是非负整数，现在是 ${frame}`);
     const k = Math.floor(frame / every);
@@ -70,8 +86,18 @@ export const simulate = <S extends { slice(): S }>(opts: { init: () => S; step: 
       for (let f = (i - 1) * every + 1; f <= i * every; f++) s = opts.step(s, f);
       checkpoints.push(s);
     }
-    let s = checkpoints[k].slice();
-    for (let f = k * every + 1; f <= frame; f++) s = opts.step(s, f);
+    // 起点：检查点，或者最近取过的帧里在它和 frame 之间、离 frame 最近的那个
+    let from = k * every;
+    let base = checkpoints[k];
+    for (const [f, s] of recent) {
+      if (f <= frame && f > from) {
+        from = f;
+        base = s;
+      }
+    }
+    let s = base.slice();
+    for (let f = from + 1; f <= frame; f++) s = opts.step(s, f);
+    remember(frame, from === frame ? base : s.slice());
     return s;
   };
   return { at, every };

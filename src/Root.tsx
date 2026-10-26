@@ -1,4 +1,5 @@
 import { Folder } from "remotion";
+import { BakeCheck } from "./checks/BakeCheck";
 import { CanvasCheck } from "./checks/CanvasCheck";
 import { D3Check } from "./checks/D3Check";
 import { FormulaCheck } from "./checks/formula/FormulaCheck";
@@ -65,6 +66,7 @@ export const RemotionRoot: React.FC = () => {
         <MapCheck />
         <SketchCheck />
         <CanvasCheck />
+        <BakeCheck />
         <ShaderCheck />
         <ThreeCheck />
         <LayoutCheck />

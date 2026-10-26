@@ -21,8 +21,18 @@ src/private/*
 !src/private/README.md
 public/private/
 
+# 预览烘焙（npm run bake）只给 Studio 用，随时能重烘
+public/bake/
+
 # 代码合成的配乐、音效和混音都能从 audio/score.json 重新生成，WAV 不进 git
 src/videos/*/audio/**/*.wav
 public/videos/*/audio/*.wav
 # motioner 的 transition_review.py 不带 --out 时的默认输出（npm run review 写到 out/review/）
 transition-review/
+
+# 演讲稿：ppt-master 实时预览的服务器日志和锁文件，每次开会话都变
+decks/*/live_preview/server.log
+decks/*/live_preview/lock.json
+decks/*/confirm_ui/server.log
+# Office 打开文件时留下的临时锁文件（~$xxx.pptx）
+decks/**/~$*

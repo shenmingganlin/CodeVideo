@@ -8,7 +8,7 @@
 
 - 新做视频，或改现有视频的画面、动效、转场、声音：第一个动作是用 Skill 工具调用 `anthropic-skills:motioner`，排在提问、写方案、读代码之前。用户没提也要调。只改错字、换配音这类不碰画面的小改动不用调
 - 写 Remotion 代码时，用到字幕、音频、渲染、Studio、转场、动态模糊、漏光、effects、Lottie、地图、3D、GIF 之类的具体 API，按需调用 `remotion-best-practices`（它的描述只有一句"Router for all Remotion skills"，不会自己冒出来，要主动调）；写 Manim 场景前调用 `manimce-best-practices`
-- 顺序：新视频先调 motioner → 照"开工前先问清楚"分轮提问，画面手法这一项先读 `techniques.md` 再问 → 写分镜评审页，改到定稿 → 样片 → 成片。动手写某种手法的代码前，调它在选型表里对应的技能或子文档
+- 顺序：新视频先调 motioner → 照"开工前先问清楚"分轮提问，画面手法这一项先读 `techniques.md` 再问 → 写分镜评审页，改到定稿 → 样片 → 成片。动手写某种手法的代码前，调它在选型表里对应的技能或子文档。用户说"快速模式"时，分镜定稿以后照"快速模式"一节做
 - 技能的示例和本文件冲突时以本文件为准：Composition 不写进 `Root.tsx`，建作品目录的 `index.tsx`；Lottie 用 `<LottieClip>`，不直接用 `<Lottie>`；地图用 `<MapLibre>`；规格、风格、配色照本文件
 - 名字相近但不用于本项目的技能：`algorithmic-art`（出独立的 p5 HTML）、`canvas-design`（出 PNG/PDF 海报）、`slack-gif-creator`（Slack 规格的 GIF，和表情规格冲突）、`hana-design-studio`（HTML 课件；HTML 演讲稿用 `frontend-slides`，见"演讲稿"）、`archify-diagrams`（HTML 图表），以及 `visual-design`、`ui-ux-pro-max`、`impeccable-design`、`frontend-design`、`theme-factory` 这类界面设计和配色主题技能。它们的产物进不了 Remotion，自带的配色字体还会盖掉用户这次说的风格。视频、表情、封面一律在 Remotion 里做，构思可以借鉴，产物照本文件的流程出。用户点名要用其中某个时照用户说的
 - 表情包不调 motioner，它是为成片写的
@@ -47,7 +47,7 @@
 - `decks/<名字>/`：演讲稿（PPTX 或 HTML），见"演讲稿"。和作品一样只进私有仓库
 - `src/templates/<名字>/`：用户存下来的模板，每个有 `template.md` 和参数化组件；`ideas.md`：灵感本。见"模板和灵感"
 - `guides/`：不是每次都用的细则，用到时才读：表情（`stickers.md`）、地图（`maps.md`）、生图（`image-gen.md`）、演讲稿（`decks.md`）。本文件只留一行指路，免得每一轮对话都带着
-- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"），`checks/sketch/` 是分镜草图（`ShotSketches` + `npm run sketch`）的示例，`CanvasCheck`、`ShaderCheck`、`ThreeCheck` 是 Canvas 2D、着色器、Three.js 图层的示例，`LayoutCheck` 是版面检查（`npm run layout`）的自检，应该正好报出三处
+- `src/checks/`：环境自检用的 Composition。`checks/voice/`、`checks/formula/` 是配音字幕和公式的完整用法示例，`StickerArtCheck` 是生成图做表情的示例，`LottieCheck`、`RoughCheck`、`D3Check`、`MapCheck` 是各种画面手法的示例（见"画面手法"），`checks/sketch/` 是分镜草图（`ShotSketches` + `npm run sketch`）的示例，`CanvasCheck`、`ShaderCheck`、`ThreeCheck` 是 Canvas 2D、着色器、Three.js 图层的示例，`BakeCheck` 是预览烘焙（`npm run bake`）的示例，`LayoutCheck` 是版面检查（`npm run layout`）的自检，应该正好报出三处
 - `src/gallery/`：动效样片库，`effects/` 下一个效果一个文件，见"动效样片库"
 - `public/`：字体、图片、配音、BGM/SFX，代码里用 `staticFile()` 引用。`npm run voice`、`npm run manim` 的产物放在和作品目录对应的位置（`src/videos/foo/` → `public/videos/foo/voice/`、`public/videos/foo/manim/`），跟着提交进私有仓库
 - `public/library/`：用户平时收集的素材库，分 `sfx/`（音效）、`bgm/`（背景音乐）、`svg/`（图标、角色、装饰）、`images/`。清单在 `public/library/index.md`，每个素材一行：描述、来源、许可。直接用 `staticFile("library/...")` 引用，不复制到作品目录。用户放了新素材但没写描述时，帮着补上：图形打开看，音频用 ffprobe 测时长、音量
@@ -79,7 +79,7 @@
   - 用户在消息里已经说清楚的轮次直接跳过。任何一轮用户说"你看着办""随便"，剩下的轮次都按推荐项填，在分镜页里写明选了什么，不再追问
   - 选项写看得见的效果（"格子落进水里泛起涟漪""手绘草图感"），技术名放在说明里。用户说不清想要的动画是常态，靠给具体的画面让用户挑，不靠追问形容词
   - 涉及素材时先查 `public/library/index.md`，`ideas.md` 里有相关的点子也列成选项
-- 任务清单（Claude Desktop 的 `update_plan`）照下面的轮次列，就这 8 步，不拆不加（调技能不单列一步）：大类和主题 → 故事线和素材 → 属性 → 挑样片 → 风格和手法 → 分镜页定稿 → 样片 → 成片
+- 任务清单（Claude Desktop 的 `update_plan`）照下面的轮次列，就这 8 步，不拆不加（调技能不单列一步）：大类和主题 → 故事线和素材 → 属性 → 挑样片 → 风格和手法 → 分镜页定稿 → 样片 → 成片。快速模式的后两步不一样，见"快速模式"
   - 每出一张卡片之前先看一眼：这张卡问的事属于清单上哪一步？那一步不是当前"进行中"的，就在出这张卡的同一条消息里用 `{"done": [...], "start": N}` 把清单拨到那一步。所以每轮的第一张卡都带一次清单更新，同一轮后面的卡不用
   - 对照：大类、主题、时长 → 1；故事线、素材 → 2；用途到片头片尾 → 3；跑 `npm run gallery` 和问编号 → 4；风格、配色、手法 → 5；开分镜页 → 6
   - 踩过的坑：开场推进了一次，之后连出 8 张卡（主题、时长、故事线、素材、用途、画幅、配音、音乐）一次没动，清单一直停在"问大类"转圈
@@ -139,6 +139,20 @@
 - 加效果：照 `effects/grid-ripple.tsx` 写，默认导出 `GalleryEffect`（编号、名字、分组、一句话描述、技术、帧数、组件），`index.tsx` 自动收进 Studio 的 gallery 分组，id 是 `G-<文件名>`。3–5 秒、首尾无缝、一段只演一种效果
 - 源码没变的不重渲（哈希记在 `out/gallery/<名字>.json`），`--force` 全部重渲。哈希只算这个效果沿相对路径 import 到的文件，加上 `index.tsx`、`kit.tsx` 和它们 import 到的；改 `src/shared/` 里样片没用到的文件不会触发重渲（以前整个 `src/shared/` 一起算，别的对话改了样片没用到的着色器引擎，就让 86 段全部重渲了好几分钟）。字体文件、npm 包升级不在哈希里，要重渲加 `--force`。网页的格子放 480×270 的小片（`<名字>.small.mp4`）和封面，只播屏幕上看得见的，点开放大才播原片：二十几段原片一起解码网页会卡。每段渲染完量首尾接缝：报"接缝跳"是最后一帧接不回第一帧，报"不动"是整段几乎没变化，都要修好再给用户看
 - 做作品时搭出来的、能复用的效果，问用户要不要收进样片库
+
+## 快速模式
+
+用户说"快速模式"时走这一套，没说就走正常流程。开工前照常问清楚，之后一次写完全片，用户在 Studio 里实时看、按反馈改：不反复渲染、不看图调试、不抠细节、不审查。第一版粗是预期的，靠用户的反馈一轮轮改好。
+
+- 不变的：先调 motioner（概念四行、章节动词、变形载体照用，它的转场审查、音效对帧不做）；8 轮提问照问，样片库照挑；规格、字体、目录、`brief.md`、`timeline.json` 照本文件。画面照样只由帧号算出来，Studio 里看到的和导出的才一样
+- 任务清单前 6 步照常，后两步换成三步：写第一版 → 按反馈改 → 导出
+- 分镜页只写文字：镜头表、概念四行照写，`media` 只挂样片库的视频，不画草图（不建 `<ShotSketches>`、不跑 `npm run sketch`）。照留言改到定稿，定稿后写 `brief.md`、`timeline.json`
+- 定稿后一次写完整部片，不单做样片，第一版就是样片
+- 声音：配音照常 `npm run voice`，Studio 里能听到配音、看到字幕。合成配乐和音效先不做，画面定了、导出前跑一次 `npm run mix`
+- 怎么看：`preview_start` 起 `remotion-studio`（3100 端口），在桌面版的浏览器面板里打开这部片子；用户也可以自己 `npm run dev` 在浏览器里看。时间轴能拖，显示帧号和秒数。很重的画面在 Studio 里可能卡，导出不受影响：这层基本定了以后，用 `<PreviewBake>` + `npm run bake` 烘焙成视频给 Studio 播（见"画面手法"），先跟用户说是哪一层、要等多久；这层后来又改了就重烘。不靠降画质换流畅
+- 每改一次只做秒级的检查：`npm run lint`，再用 `preview_console_logs` 看有没有报错白屏。不为看效果截图、渲静帧、渲草稿；只有用户说的问题从代码里看不出原因时，才截那一帧看一次。改完说改了哪几处、在第几秒，请用户看
+- 反馈请用户带上时间或帧号（"第 8 秒那个字"）。同一轮的反馈攒齐一起改
+- 导出：用户说"导出"时，有配乐先 `npm run mix`，再 `npm run video -- <id> [--mix=…] [--gl=angle]`，它照常校验规格和响度，"不合格"要修。不跑 `npm run review`、`npm run layout`、`npm run contact`。导出的渲染时间和正常成片一样，只渲这一次。Studio 自带的 Render 按钮不校验规格、不合混音，不用它交付
 
 ## 作品方案
 
@@ -250,7 +264,8 @@
   - Rough.js：`src/shared/rough.tsx`。一律用 `roughGenerator(seed)` 生成图形：Rough.js 的 seed 缺省为 0，会改用 Math.random；不传 options 时几个图形还共用一个随机数状态，前面多画一个图形后面全变样。`<RoughPaths progress>` 画进 `<svg>`，描边和排线一笔笔画出来；`useBoilSeed(seed, 3)` 做手绘的抖线。示例 `RoughCheck`
   - D3：只当计算库，d3-scale、d3-shape、d3-geo、d3-hierarchy 算出坐标再自己画 SVG；d3-selection、d3-transition 直接改 DOM、靠时钟动，不用。力导向图用 `src/shared/d3.ts` 的 `precomputeForce()` 预先 tick 出每帧位置。示例 `D3Check`
   - 地图：`src/shared/map.tsx` 的 `<MapLibre>`，`setup` 加图层、设地球投影，`update(map, frame)` 每帧 `jumpTo` 相机、改数据，不用 flyTo/easeTo。航线、距离用 `@turf/turf`。示例 `MapCheck`（地球视角画航线，推进到曼哈顿看 3D 建筑）。联网、图层整层跳亮、署名、发 B 站的中国地图合规都写在 `guides/maps.md`，用地图前先读。开工提问选了地图、内容又涉及中国时，照那里的取舍列成选项问用户
-  - Canvas 2D：`src/shared/canvas.tsx`。`<CanvasLayer draw={(ctx, frame, size) => …} />` 每帧清空重画；要一步步积分的粒子、弹簧用 `simulate({ init, step, every })`，`.at(frame)` 从最近的检查点往后算，乱序取帧结果一样。拖尾画成"几帧前 → 现在"的线段，不靠不清屏。示例 `CanvasCheck`、样片 #87
+  - Canvas 2D：`src/shared/canvas.tsx`。`<CanvasLayer draw={(ctx, frame, size) => …} />` 每帧清空重画；要一步步积分的粒子、弹簧用 `simulate({ init, step, every })`，`.at(frame)` 从最近的检查点往后算，乱序取帧结果一样。拖尾画成"几帧前 → 现在"的线段，不靠不清屏。`simulate` 记着最近 8 帧，Studio 顺着播放时每帧只走一步。示例 `CanvasCheck`、样片 #87
+  - 预览烘焙：`src/shared/bake.tsx`。Studio 里实时画不动的重图层（多半是上万粒子、大量线条的 Canvas；着色器、Three.js 走显卡，一般不用）包进 `<PreviewBake id="…">`，`npm run bake -- <id> <烘焙 id> [--frames=<起>-<止>] [--gl=…]` 把这一层单独渲成透明 VP9（crf 10），Studio 两秒内自动换上，层左上角标"烘焙预览"。只给预览用：导出、静帧、版面检查照样现场画，成片和不烘焙一样。包住的层要铺满画面，外层的位移、淡入不进烘焙，在 Studio 里照常套上；放在 `<Sequence>` 里帧号自动对上。这层的代码改了要重烘，`--clear` 删掉回到现场画，`--list` 看烘了哪些。文件在 `public/bake/`，不进 git。实测（`BakeCheck`，12000 根线 6 秒）：烘 35 秒、105MB，和现场画比 PSNR 40.5 dB，解码每帧约 14ms。`public/` 下的文件每次打包都会拷一遍，烘焙用完了 `--clear` 掉
   - 着色器：`src/shared/shader.tsx`。`<ShaderLayer frag={SHADER_NOISE + FRAG} uniforms={…} />`，Shadertoy 写法（只写 `mainImage`）自动补 `iTime`、`iFrame`、`iResolution`；半透明输出要预乘。噪声用 `SHADER_NOISE`（整数哈希），别用 `fract(sin(…))`：显卡和软件渲染能差出整片噪点。示例 `ShaderCheck`、样片 #88
   - Three.js：`src/shared/three.tsx`。`<ThreeLayer shadows>` 包住场景，`<FrameCamera position lookAt fov />` 每帧设相机（`<Canvas camera>` 只读一次），`orbit()` 算绕转机位。动画只由 `useCurrentFrame()` 算，不用 `useFrame()`、`Clock`；命令式改的（InstancedMesh 矩阵、材质参数）必须写在 `useLayoutEffect` 里，写在 `useEffect` 里会画错（实测每个渲染标签页的第一帧方柱全没摆上）。示例 `ThreeCheck`、样片 #89
   - 细节、成本和坑见 `techniques.md`
@@ -289,6 +304,7 @@
 - `npm run board -- <作品目录> [--list] [--resolve=<编号,…> --reply=<回复>] [--no-open]`：分镜评审页，见"开工前先问清楚"；编号写 `s3-2`、`整体-1`
 - `npm run sketch -- <作品目录> [镜头 id…] [--scale=0.5] [--gl=angle]`：把 `<ShotSketches>` 注册的每个镜头渲成静帧，出在 `out/board/<作品>/`，对照 board.json 列出没挂上的图
 - `npm run gallery [-- <名字…>] [--force] [--no-open] [--list]`：渲染动效样片库并打开网页，见"动效样片库"；`--list` 只打印编号、名字、分组、文件名和描述
+- `npm run bake -- <id> <烘焙 id> [--frames=<起>-<止>] [--gl=angle] [--clear] [--list]`：把 `<PreviewBake>` 包住的重图层烘成透明视频，只给 Studio 预览用，见"画面手法"
 - `npm run doctor`：环境预检（Node、FFmpeg、gifski、uv 和 Python 依赖、TeX、字体、motioner 技能目录、.env 是否填好）
 - `npm run voice -- src/videos/<作品>`：生成配音和逐词时间，加 `--force` 全部重新生成；`npm run voice -- --voices` 列出中文语音
 - `npm run manim -- src/videos/<作品>/scenes.py [场景名…] [--fps=30] [--size=1920x1080]`：渲染透明的 Manim 片段，不写场景名就渲染全部

@@ -28,6 +28,7 @@
     "board": "node scripts/board.mjs",
     "sketch": "node scripts/sketch.mjs",
     "gallery": "node scripts/gallery.mjs",
+    "bake": "node scripts/bake.mjs",
     "sync-public": "node scripts/sync-public.mjs"
   },
   "dependencies": {
@@ -57,6 +58,7 @@
     "@remotion/eslint-config-flat": "4.0.537",
     "@types/d3": "7.4.3",
     "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
     "@types/three": "0.186.0",
     "@types/web": "0.0.166",
     "eslint": "10.12.0",
