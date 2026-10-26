@@ -21,9 +21,6 @@ src/private/*
 !src/private/README.md
 public/private/
 
-# 预览烘焙（npm run bake）只给 Studio 用，随时能重烘
-public/bake/
-
 # 代码合成的配乐、音效和混音都能从 audio/score.json 重新生成，WAV 不进 git
 src/videos/*/audio/**/*.wav
 public/videos/*/audio/*.wav
